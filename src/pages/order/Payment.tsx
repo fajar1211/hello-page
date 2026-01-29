@@ -37,6 +37,11 @@ export default function Payment() {
   const { state, setPromoCode, setAppliedPromo } = useOrder();
   const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain);
   const midtrans = useMidtransOrderSettings();
+
+  // Fixed exchange rate for US-facing checkout.
+  // IMPORTANT: Keep in sync with edge function (midtrans-order-charge).
+  const USD_TO_IDR_RATE = 16000;
+
   const [method, setMethod] = useState<"card" | "bank">("card");
   const [promo, setPromo] = useState(state.promoCode);
   const [cardNumber, setCardNumber] = useState("");
@@ -64,6 +69,31 @@ export default function Payment() {
     const discount = Number.isFinite(d) && d > 0 ? d : 0;
     return Math.max(0, baseTotalUsd - discount);
   }, [baseTotalUsd, state.appliedPromo?.discountUsd]);
+
+  const totalChargedIdr = useMemo(() => {
+    if (totalAfterPromoUsd == null) return null;
+    return Math.max(1, Math.round(totalAfterPromoUsd * USD_TO_IDR_RATE));
+  }, [USD_TO_IDR_RATE, totalAfterPromoUsd]);
+
+  const usdFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }),
+    [],
+  );
+
+  const idrFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0,
+      }),
+    [],
+  );
 
   // Auto-apply promo as user types (debounced), so Est. price updates immediately.
   useEffect(() => {
@@ -254,8 +284,37 @@ export default function Payment() {
           <CardHeader>
             <CardTitle className="text-base">Final review</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Please review your domain, chosen design, and details in the Order Summary.
+          <CardContent className="space-y-4 text-sm">
+            <div className="rounded-lg border p-4">
+              <p className="font-medium text-foreground">Notice</p>
+              <p className="mt-1 text-muted-foreground">
+                Payment will be processed in IDR (Indonesian Rupiah). The IDR amount equals the USD price shown.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <p className="font-medium text-foreground">Price breakdown</p>
+              <dl className="mt-3 grid gap-2">
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">Price</dt>
+                  <dd className="font-medium text-foreground">
+                    {totalAfterPromoUsd == null ? "—" : `${usdFormatter.format(totalAfterPromoUsd)} USD`}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">Exchange rate</dt>
+                  <dd className="font-medium text-foreground">1 USD = {USD_TO_IDR_RATE.toLocaleString("en-US")} IDR</dd>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">Total charged</dt>
+                  <dd className="font-medium text-foreground">
+                    {totalChargedIdr == null ? "—" : `${idrFormatter.format(totalChargedIdr)} IDR`}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            <p className="text-muted-foreground">Please review your domain, chosen design, and details in the Order Summary.</p>
           </CardContent>
         </Card>
 
@@ -266,7 +325,7 @@ export default function Payment() {
           <Button
             type="button"
             size="lg"
-            disabled={!canComplete || method !== "card" || !midtrans.ready || !isCardFormValid || paying || totalAfterPromoUsd == null}
+             disabled={!canComplete || method !== "card" || !midtrans.ready || !isCardFormValid || paying || totalAfterPromoUsd == null}
             onClick={async () => {
               if (!window.MidtransNew3ds?.getCardToken) {
                 toast({ variant: "destructive", title: "Midtrans script not ready", description: "Please wait a moment and try again." });

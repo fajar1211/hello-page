@@ -22,7 +22,9 @@ type Payload = {
   customer_email: string;
 };
 
-const WS_USD_TO_IDR = "order_usd_to_idr_rate";
+// Fixed exchange rate for US-facing checkout.
+// IMPORTANT: Keep in sync with frontend display.
+const USD_TO_IDR_RATE = 16000;
 
 function isEnv(v: unknown): v is Env {
   return v === "sandbox" || v === "production";
@@ -72,14 +74,19 @@ async function getPlainServerKey(admin: any, env: Env): Promise<string> {
   return key.trim();
 }
 
-async function getUsdToIdrRate(admin: any): Promise<number> {
-  const { data, error } = await admin.from("website_settings").select("value").eq("key", WS_USD_TO_IDR).maybeSingle();
-  if (error) throw error;
-  const raw = (data as any)?.value;
-  const n = typeof raw === "number" ? raw : Number(raw);
-  // Default conservative rate if not set.
-  if (!Number.isFinite(n) || n < 1000 || n > 100000) return 16000;
-  return n;
+function formatUsdCompact(amount: number): string {
+  // $2,000 (no decimals) for clear item naming.
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    // Fallback
+    const rounded = Math.round(amount);
+    return `$${rounded.toLocaleString("en-US")}`;
+  }
 }
 
 async function inferEnv(admin: any): Promise<Env> {
@@ -120,8 +127,7 @@ Deno.serve(async (req) => {
 
     const env: Env = isEnv(body.env) ? body.env : await inferEnv(admin);
     const serverKey = await getPlainServerKey(admin, env);
-    const usdToIdr = await getUsdToIdrRate(admin);
-    const amount_idr = Math.max(1, Math.round(amount_usd * usdToIdr));
+    const amount_idr = Math.max(1, Math.round(amount_usd * USD_TO_IDR_RATE));
 
     const order_id = `ema-${crypto.randomUUID()}`;
 
@@ -148,6 +154,7 @@ Deno.serve(async (req) => {
     if (orderErr) throw orderErr;
 
     const auth = btoa(`${serverKey}:`);
+    const usdLabel = formatUsdCompact(amount_usd);
     const chargeRes = await fetch(`${midtransBaseUrl(env)}/v2/charge`, {
       method: "POST",
       headers: {
@@ -156,11 +163,21 @@ Deno.serve(async (req) => {
         Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
+        // Midtrans must receive only IDR values.
+        currency: "IDR",
         payment_type: "credit_card",
         transaction_details: {
           order_id,
           gross_amount: amount_idr,
         },
+        item_details: [
+          {
+            id: selected_template_id,
+            price: amount_idr,
+            quantity: 1,
+            name: `Service Package – ${usdLabel} USD (charged in IDR)`,
+          },
+        ],
         credit_card: {
           token_id,
           authentication: true,
