@@ -1,1 +1,10 @@
 project_id = "supiwygxypfqjzoqmlaq"
+
+[functions.midtrans-order-settings]
+verify_jwt = false
+
+[functions.midtrans-order-charge]
+verify_jwt = false
+
+[functions.midtrans-webhook]
+verify_jwt = false
