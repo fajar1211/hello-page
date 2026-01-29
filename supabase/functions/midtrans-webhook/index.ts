@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,70 @@ const corsHeaders: Record<string, string> = {
 };
 
 type Env = "sandbox" | "production";
+
+function formatUsd(amount: number): string {
+  // Force USD with 2 decimals, e.g. $2,000.00
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+async function maybeSendInvoiceEmail(params: {
+  to: string;
+  customerName: string | null;
+  orderId: string;
+  domain: string;
+  amountUsd: number;
+  paymentEnv: Env;
+}) {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const from = Deno.env.get("RESEND_FROM_EMAIL");
+  if (!apiKey || !from) return;
+
+  const resend = new Resend(apiKey);
+  const amountLabel = formatUsd(params.amountUsd);
+
+  await resend.emails.send({
+    from,
+    to: [params.to],
+    subject: `Invoice: ${amountLabel} (USD)` ,
+    html: `
+      <div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; line-height: 1.5;">
+        <h2 style="margin: 0 0 12px;">Payment receipt</h2>
+        <p style="margin: 0 0 16px;">Hi${params.customerName ? ` ${params.customerName}` : ""},</p>
+        <p style="margin: 0 0 16px;">Thanks for your purchase. Here are your invoice details:</p>
+        <table style="border-collapse: collapse; width: 100%; max-width: 560px;">
+          <tr>
+            <td style="padding: 8px 0; color: #374151;">Order ID</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: 600;">${params.orderId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #374151;">Domain</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: 600;">${params.domain}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #374151;">Amount (USD)</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: 700;">${amountLabel} USD</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #374151;">Payment processing</td>
+            <td style="padding: 8px 0; text-align: right;">Charged in IDR via Midtrans</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #374151;">Environment</td>
+            <td style="padding: 8px 0; text-align: right;">${params.paymentEnv}</td>
+          </tr>
+        </table>
+        <p style="margin: 16px 0 0; color: #6B7280; font-size: 14px;">
+          Payment will be processed in IDR (Indonesian Rupiah). The IDR amount equals the USD price shown.
+        </p>
+      </div>
+    `,
+  });
+}
 
 async function sha512Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
@@ -102,7 +167,7 @@ Deno.serve(async (req) => {
     // Lookup order.
     const { data: order, error: orderErr } = await admin
       .from("orders")
-      .select("id,user_id,subscription_years")
+      .select("id,user_id,subscription_years,status,customer_email,customer_name,amount_usd,domain")
       .eq("midtrans_order_id", order_id)
       .maybeSingle();
     if (orderErr) throw orderErr;
@@ -116,6 +181,8 @@ Deno.serve(async (req) => {
     const paid = transaction_status === "settlement" || transaction_status === "capture";
     const failed = transaction_status === "deny" || transaction_status === "cancel" || transaction_status === "expire";
 
+    const previousStatus = String((order as any)?.status ?? "").trim();
+
     await admin
       .from("orders")
       .update({
@@ -127,6 +194,23 @@ Deno.serve(async (req) => {
         status: paid ? "paid" : failed ? "failed" : "pending",
       })
       .eq("id", (order as any).id);
+
+    // Send invoice email (USD amount) once when transitioning to paid.
+    if (paid && previousStatus !== "paid") {
+      const to = String((order as any)?.customer_email ?? "").trim();
+      const amountUsdRaw = Number((order as any)?.amount_usd ?? NaN);
+      const domain = String((order as any)?.domain ?? "").trim();
+      if (to && Number.isFinite(amountUsdRaw) && domain) {
+        await maybeSendInvoiceEmail({
+          to,
+          customerName: (order as any)?.customer_name ?? null,
+          orderId: order_id,
+          domain,
+          amountUsd: amountUsdRaw,
+          paymentEnv: env,
+        });
+      }
+    }
 
     // Activate subscription if we have an authenticated user on the order.
     const userId = (order as any).user_id as string | null;

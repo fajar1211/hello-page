@@ -38,10 +38,6 @@ export default function Payment() {
   const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain);
   const midtrans = useMidtransOrderSettings();
 
-  // Fixed exchange rate for US-facing checkout.
-  // IMPORTANT: Keep in sync with edge function (midtrans-order-charge).
-  const USD_TO_IDR_RATE = 16000;
-
   const [method, setMethod] = useState<"card" | "bank">("card");
   const [promo, setPromo] = useState(state.promoCode);
   const [cardNumber, setCardNumber] = useState("");
@@ -70,26 +66,11 @@ export default function Payment() {
     return Math.max(0, baseTotalUsd - discount);
   }, [baseTotalUsd, state.appliedPromo?.discountUsd]);
 
-  const totalChargedIdr = useMemo(() => {
-    if (totalAfterPromoUsd == null) return null;
-    return Math.max(1, Math.round(totalAfterPromoUsd * USD_TO_IDR_RATE));
-  }, [USD_TO_IDR_RATE, totalAfterPromoUsd]);
-
   const usdFormatter = useMemo(
     () =>
       new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
-        maximumFractionDigits: 0,
-      }),
-    [],
-  );
-
-  const idrFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
         maximumFractionDigits: 0,
       }),
     [],
@@ -299,16 +280,6 @@ export default function Payment() {
                   <dt className="text-muted-foreground">Price</dt>
                   <dd className="font-medium text-foreground">
                     {totalAfterPromoUsd == null ? "—" : `${usdFormatter.format(totalAfterPromoUsd)} USD`}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted-foreground">Exchange rate</dt>
-                  <dd className="font-medium text-foreground">1 USD = {USD_TO_IDR_RATE.toLocaleString("en-US")} IDR</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted-foreground">Total charged</dt>
-                  <dd className="font-medium text-foreground">
-                    {totalChargedIdr == null ? "—" : `${idrFormatter.format(totalChargedIdr)} IDR`}
                   </dd>
                 </div>
               </dl>
