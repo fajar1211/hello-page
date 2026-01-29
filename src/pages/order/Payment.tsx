@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderLayout } from "@/components/order/OrderLayout";
 import { OrderSummaryCard } from "@/components/order/OrderSummaryCard";
+import { PaymentConfirmDialog } from "@/components/order/PaymentConfirmDialog";
 import { useOrder } from "@/contexts/OrderContext";
 import { useOrderPublicSettings } from "@/hooks/useOrderPublicSettings";
 import { validatePromoCode } from "@/hooks/useOrderPromoCode";
@@ -46,6 +47,7 @@ export default function Payment() {
   const [cvv, setCvv] = useState("");
   const [paying, setPaying] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const baseTotalUsd = useMemo(() => {
     if (!state.subscriptionYears) return null;
@@ -143,6 +145,81 @@ export default function Payment() {
     const c = cvv.trim();
     return Boolean(num.length >= 12 && num.length <= 19 && mm.length === 2 && yy.length === 4 && c.length >= 3 && c.length <= 4);
   }, [cardNumber, cvv, expMonth, expYear]);
+
+  const startCardPayment = async () => {
+    if (!window.MidtransNew3ds?.getCardToken) {
+      toast({ variant: "destructive", title: "Midtrans script not ready", description: "Please wait a moment and try again." });
+      return;
+    }
+    if (totalAfterPromoUsd == null) {
+      toast({ variant: "destructive", title: "Total not available" });
+      return;
+    }
+
+    setPaying(true);
+    try {
+      const cardData = {
+        card_number: cardNumber.replace(/\s+/g, ""),
+        card_exp_month: expMonth,
+        card_exp_year: expYear,
+        card_cvv: cvv,
+      };
+
+      const tokenId: string = await new Promise((resolve, reject) => {
+        window.MidtransNew3ds!.getCardToken(cardData, {
+          onSuccess: (res) => {
+            const t = String(res?.token_id ?? "").trim();
+            if (!t) return reject(new Error("Token not returned"));
+            resolve(t);
+          },
+          onFailure: (res) => {
+            reject(new Error(String(res?.status_message ?? "Failed to tokenize card")));
+          },
+        });
+      });
+
+      const { data, error } = await supabase.functions.invoke<{
+        ok: boolean;
+        order_id: string;
+        redirect_url: string | null;
+        transaction_status: string | null;
+        error?: string;
+      }>("midtrans-order-charge", {
+        body: {
+          token_id: tokenId,
+          env: midtrans.env,
+          amount_usd: totalAfterPromoUsd,
+          subscription_years: state.subscriptionYears,
+          promo_code: state.promoCode,
+          domain: state.domain,
+          selected_template_id: state.selectedTemplateId,
+          selected_template_name: state.selectedTemplateName,
+          customer_name: state.details.name,
+          customer_email: state.details.email,
+        },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error ?? "Charge failed");
+
+      setLastOrderId(data.order_id);
+
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+        return;
+      }
+
+      toast({ title: "Payment created", description: `Order: ${data.order_id}` });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Payment failed",
+        description: e?.message ?? "Please try again.",
+      });
+    } finally {
+      setPaying(false);
+      setConfirmOpen(false);
+    }
+  };
 
   return (
     <OrderLayout title="Payment" step="payment" sidebar={<OrderSummaryCard />}>
@@ -287,86 +364,17 @@ export default function Payment() {
           <Button type="button" variant="outline" onClick={() => navigate("/order/subscription")}>
             Back
           </Button>
-          <Button
-            type="button"
-            size="lg"
-             disabled={!canComplete || method !== "card" || !midtrans.ready || !isCardFormValid || paying || totalAfterPromoUsd == null}
-            onClick={async () => {
-              if (!window.MidtransNew3ds?.getCardToken) {
-                toast({ variant: "destructive", title: "Midtrans script not ready", description: "Please wait a moment and try again." });
-                return;
-              }
-              if (totalAfterPromoUsd == null) {
-                toast({ variant: "destructive", title: "Total not available" });
-                return;
-              }
-
-              setPaying(true);
-              try {
-                const cardData = {
-                  card_number: cardNumber.replace(/\s+/g, ""),
-                  card_exp_month: expMonth,
-                  card_exp_year: expYear,
-                  card_cvv: cvv,
-                };
-
-                const tokenId: string = await new Promise((resolve, reject) => {
-                  window.MidtransNew3ds!.getCardToken(cardData, {
-                    onSuccess: (res) => {
-                      const t = String(res?.token_id ?? "").trim();
-                      if (!t) return reject(new Error("Token not returned"));
-                      resolve(t);
-                    },
-                    onFailure: (res) => {
-                      reject(new Error(String(res?.status_message ?? "Failed to tokenize card")));
-                    },
-                  });
-                });
-
-                const { data, error } = await supabase.functions.invoke<{
-                  ok: boolean;
-                  order_id: string;
-                  redirect_url: string | null;
-                  transaction_status: string | null;
-                  error?: string;
-                }>("midtrans-order-charge", {
-                  body: {
-                    token_id: tokenId,
-                    env: midtrans.env,
-                    amount_usd: totalAfterPromoUsd,
-                    subscription_years: state.subscriptionYears,
-                    promo_code: state.promoCode,
-                    domain: state.domain,
-                    selected_template_id: state.selectedTemplateId,
-                    selected_template_name: state.selectedTemplateName,
-                    customer_name: state.details.name,
-                    customer_email: state.details.email,
-                  },
-                });
-                if (error) throw error;
-                if (!data?.ok) throw new Error(data?.error ?? "Charge failed");
-
-                setLastOrderId(data.order_id);
-
-                if (data.redirect_url) {
-                  window.location.href = data.redirect_url;
-                  return;
-                }
-
-                toast({ title: "Payment created", description: `Order: ${data.order_id}` });
-              } catch (e: any) {
-                toast({
-                  variant: "destructive",
-                  title: "Payment failed",
-                  description: e?.message ?? "Please try again.",
-                });
-              } finally {
-                setPaying(false);
-              }
+          <PaymentConfirmDialog
+            open={confirmOpen}
+            onOpenChange={(o) => {
+              if (paying) return;
+              setConfirmOpen(o);
             }}
-          >
-            {paying ? "Processing..." : "Pay with Card"}
-          </Button>
+            confirming={paying}
+            disabled={!canComplete || method !== "card" || !midtrans.ready || !isCardFormValid || paying || totalAfterPromoUsd == null}
+            amountUsdFormatted={totalAfterPromoUsd == null ? "—" : usdFormatter.format(totalAfterPromoUsd)}
+            onConfirm={startCardPayment}
+          />
         </div>
       </div>
     </OrderLayout>
