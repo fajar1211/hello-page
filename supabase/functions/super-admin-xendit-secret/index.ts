@@ -17,6 +17,31 @@ type Payload =
       api_key: string;
     };
 
+function validateXenditSecretKey(input: string) {
+  const apiKey = String(input ?? "").trim();
+  if (!apiKey) return { ok: false as const, error: "api_key is required" };
+
+  // Basic safety: no whitespace, keep length reasonable.
+  if (/\s/.test(apiKey) || apiKey.length < 8 || apiKey.length > 256) {
+    return { ok: false as const, error: "Invalid api_key format" };
+  }
+
+  // Xendit invoice API requires SECRET key (not public key).
+  // Common prefixes: xnd_development_..., xnd_production_...
+  if (!apiKey.startsWith("xnd_")) {
+    return { ok: false as const, error: "Invalid Xendit key. Use a key that starts with 'xnd_'" };
+  }
+  if (apiKey.startsWith("xnd_public_")) {
+    return {
+      ok: false as const,
+      error:
+        "Invalid Xendit key for server-side usage. Please paste the Xendit *Secret* API Key (xnd_development_... / xnd_production_...), not the public key.",
+    };
+  }
+
+  return { ok: true as const, apiKey };
+}
+
 async function requireSuperAdmin(admin: any, userId: string) {
   const { data: roleRow, error: roleErr } = await admin
     .from("user_roles")
@@ -94,16 +119,9 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "set") {
-      const apiKey = String((body as any).api_key ?? "").trim();
-      if (!apiKey) {
-        return new Response(JSON.stringify({ error: "api_key is required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Basic safety: no whitespace, keep length reasonable.
-      if (/\s/.test(apiKey) || apiKey.length < 8 || apiKey.length > 256) {
-        return new Response(JSON.stringify({ error: "Invalid api_key format" }), {
+      const validated = validateXenditSecretKey((body as any).api_key);
+      if (!validated.ok) {
+        return new Response(JSON.stringify({ error: validated.error }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -113,7 +131,7 @@ Deno.serve(async (req) => {
         {
           provider: "xendit",
           name: "api_key",
-          ciphertext: apiKey,
+          ciphertext: validated.apiKey,
           iv: "plain",
         },
         { onConflict: "provider,name" },

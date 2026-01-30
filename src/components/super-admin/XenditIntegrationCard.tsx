@@ -43,7 +43,8 @@ export function XenditIntegrationCard({
       </CardHeader>
 
       <CardContent className="text-sm text-muted-foreground">
-        Simpan Xendit API key untuk integrasi pembayaran.
+        Simpan <span className="font-medium text-foreground">Xendit Secret API Key</span> untuk integrasi pembayaran (contoh prefix:
+        <span className="font-mono text-foreground"> xnd_development_</span> / <span className="font-mono text-foreground">xnd_production_</span>).
 
         <div className="mt-4 space-y-4">
           <form onSubmit={onSave} className="space-y-3">
@@ -54,10 +55,13 @@ export function XenditIntegrationCard({
                 type="password"
                 value={apiKeyValue}
                 onChange={(e) => onApiKeyChange(e.target.value)}
-                placeholder="Tempel Xendit API key di sini..."
+                placeholder="Tempel Xendit Secret API Key di sini..."
                 autoComplete="new-password"
                 disabled={loading}
               />
+              <div className="text-xs text-muted-foreground">
+                Jangan gunakan <span className="font-mono text-foreground">xnd_public_</span> (public key) untuk create invoice.
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">

@@ -55,8 +55,15 @@ async function getPlainXenditKey(admin: any): Promise<string> {
   if (error) throw error;
   const iv = String((data as any)?.iv ?? "");
   const key = iv === "plain" ? String((data as any)?.ciphertext ?? "") : "";
-  if (!key.trim()) throw new Error("Xendit API key not configured");
-  return key.trim();
+  const trimmed = key.trim();
+  if (!trimmed) throw new Error("Xendit API key not configured");
+
+  // Guardrail: invoice API needs SECRET key, not public key.
+  if (trimmed.startsWith("xnd_public_")) {
+    throw new Error("Xendit public key detected. Please configure Xendit *Secret* API key (xnd_development_... / xnd_production_...).");
+  }
+
+  return trimmed;
 }
 
 function xenditBasicAuth(apiKey: string) {
@@ -157,7 +164,15 @@ Deno.serve(async (req) => {
         await admin.from("orders").update({ status: "failed" }).eq("id", (orderRow as any).id);
       }
 
-      return new Response(JSON.stringify({ ok: false, error: "Xendit invoice create failed", xendit: invoiceJson }), {
+      const errCode = String((invoiceJson as any)?.error_code ?? "").toUpperCase();
+      const errMsg = String((invoiceJson as any)?.message ?? "");
+      const isInvalidKey = errCode === "INVALID_API_KEY" || /invalid api key/i.test(errMsg);
+
+      const friendlyError = isInvalidKey
+        ? "Xendit API key invalid. Please configure the Xendit *Secret* API Key (xnd_development_... / xnd_production_...) in Super Admin → Integrations."
+        : "Xendit invoice create failed";
+
+      return new Response(JSON.stringify({ ok: false, error: friendlyError, xendit: invoiceJson }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
