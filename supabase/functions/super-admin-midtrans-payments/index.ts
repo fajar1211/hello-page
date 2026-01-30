@@ -14,6 +14,22 @@ type Payload = {
   limit?: number;
 };
 
+type OkResponse = {
+  ok: true;
+  env: Env;
+  items: Array<
+    OrderRow & {
+      midtrans?: Record<string, unknown> | null;
+      midtrans_error?: string | null;
+    }
+  >;
+};
+
+type ErrResponse = {
+  ok: false;
+  error: string;
+};
+
 function normalizeEnv(input: unknown): Env {
   const v = String(input ?? "").trim().toLowerCase();
   if (v !== "sandbox" && v !== "production") throw new Error("Invalid env");
@@ -113,7 +129,21 @@ Deno.serve(async (req) => {
     const env = normalizeEnv(body.env);
     const limit = normalizeLimit(body.limit);
 
-    const serverKey = await getPlainServerKey(admin, env);
+     let serverKey = "";
+     try {
+       serverKey = await getPlainServerKey(admin, env);
+     } catch (e) {
+       const msg = e instanceof Error ? e.message : String(e);
+       // Treat missing config as a soft error so the dashboard doesn't crash.
+       if (msg.toLowerCase().includes("not configured")) {
+         const resp: ErrResponse = { ok: false, error: msg };
+         return new Response(JSON.stringify(resp), {
+           status: 200,
+           headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+       }
+       throw e;
+     }
     const auth = btoa(`${serverKey}:`);
 
     const { data: orders, error: ordersErr } = await admin
@@ -128,12 +158,7 @@ Deno.serve(async (req) => {
 
     if (ordersErr) throw ordersErr;
 
-    const results: Array<
-      OrderRow & {
-        midtrans?: Record<string, unknown> | null;
-        midtrans_error?: string | null;
-      }
-    > = [];
+     const results: OkResponse["items"] = [];
 
     for (const o of (orders ?? []) as OrderRow[]) {
       const orderId = String((o as any)?.midtrans_order_id ?? "").trim();
@@ -168,7 +193,8 @@ Deno.serve(async (req) => {
       results.push({ ...o, midtrans: json, midtrans_error: null });
     }
 
-    return new Response(JSON.stringify({ ok: true, env, items: results }), {
+     const resp: OkResponse = { ok: true, env, items: results };
+     return new Response(JSON.stringify(resp), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

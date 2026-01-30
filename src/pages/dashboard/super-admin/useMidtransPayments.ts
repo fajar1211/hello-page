@@ -20,8 +20,9 @@ type MidtransPaymentsItem = {
 
 type Response = {
   ok: boolean;
-  env: MidtransEnv;
-  items: MidtransPaymentsItem[];
+  env?: MidtransEnv;
+  items?: MidtransPaymentsItem[];
+  error?: string;
 };
 
 const FN = "super-admin-midtrans-payments";
@@ -38,7 +39,7 @@ export function useMidtransPayments() {
       try {
         const { data, error } = await invokeWithAuth<Response>(FN, { env: desiredEnv, limit: 20 });
         if (error) throw error;
-        if (!data?.ok) throw new Error("Failed to load payments");
+        if (!data?.ok) throw new Error(data?.error || "Midtrans server key not configured");
         setItems(data.items ?? []);
       } catch (e: any) {
         console.error(e);
