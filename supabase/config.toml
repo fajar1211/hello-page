@@ -20,3 +20,18 @@ verify_jwt = false
 
 [functions.xendit-invoice-create]
 verify_jwt = false
+
+[functions.super-admin-paypal-settings]
+verify_jwt = false
+
+[functions.super-admin-paypal-secret]
+verify_jwt = false
+
+[functions.paypal-order-settings]
+verify_jwt = false
+
+[functions.paypal-create-order]
+verify_jwt = false
+
+[functions.paypal-capture-order]
+verify_jwt = false

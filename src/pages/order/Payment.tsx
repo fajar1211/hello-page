@@ -12,6 +12,8 @@ import { validatePromoCode } from "@/hooks/useOrderPromoCode";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMidtransOrderSettings } from "@/hooks/useMidtransOrderSettings";
+import { usePaypalOrderSettings } from "@/hooks/usePaypalOrderSettings";
+import { PayPalButtonsSection } from "@/components/order/PayPalButtonsSection";
 
 declare global {
   interface Window {
@@ -29,6 +31,7 @@ declare global {
         },
       ) => void;
     };
+    paypal?: any;
   }
 }
 
@@ -38,11 +41,13 @@ export default function Payment() {
   const { state, setPromoCode, setAppliedPromo } = useOrder();
   const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain);
   const midtrans = useMidtransOrderSettings();
+  const paypal = usePaypalOrderSettings();
 
   const [gatewayLoading, setGatewayLoading] = useState(true);
-  const [gateway, setGateway] = useState<"xendit" | "midtrans" | null>(null);
+  const [gateway, setGateway] = useState<"xendit" | "midtrans" | "paypal" | null>(null);
+  const [available, setAvailable] = useState<{ xendit: boolean; midtrans: boolean; paypal: boolean } | null>(null);
 
-  const [method, setMethod] = useState<"card" | "bank">("card");
+  const [method, setMethod] = useState<"card" | "paypal" | "bank">("card");
   const [promo, setPromo] = useState(state.promoCode);
   const [cardNumber, setCardNumber] = useState("");
   const [expMonth, setExpMonth] = useState("");
@@ -56,17 +61,24 @@ export default function Payment() {
     (async () => {
       setGatewayLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke<{ ok: boolean; provider: "xendit" | "midtrans" | null }>(
+        const { data, error } = await supabase.functions.invoke<{
+          ok: boolean;
+          provider: "xendit" | "midtrans" | "paypal" | null;
+          providers?: { xendit: boolean; midtrans: boolean; paypal: boolean };
+        }>(
           "order-payment-provider",
           { body: {} },
         );
         if (error) throw error;
         const provider = (data as any)?.provider ?? null;
-        if (provider !== "xendit" && provider !== "midtrans") {
+        const providers = (data as any)?.providers ?? null;
+        if (providers && typeof providers === "object") setAvailable(providers);
+        if (provider !== "xendit" && provider !== "midtrans" && provider !== "paypal") {
           navigate("/contact", { replace: true });
           return;
         }
         setGateway(provider);
+        if (provider === "paypal") setMethod("paypal");
       } catch {
         navigate("/contact", { replace: true });
       } finally {
@@ -74,6 +86,20 @@ export default function Payment() {
       }
     })();
   }, [navigate]);
+
+  // Load PayPal JS SDK when PayPal is available.
+  useEffect(() => {
+    if (!paypal.clientId) return;
+    if (document.getElementById("paypal-sdk")) return;
+
+    const s = document.createElement("script");
+    s.id = "paypal-sdk";
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(paypal.clientId)}&currency=USD&intent=capture`;
+    s.async = true;
+    document.body.appendChild(s);
+  }, [paypal.clientId]);
+
+  const paypalButtonsEnabled = Boolean(paypal.ready && paypal.clientId);
 
   const baseTotalUsd = useMemo(() => {
     if (!state.subscriptionYears) return null;
@@ -310,17 +336,66 @@ export default function Payment() {
               <Button type="button" variant={method === "card" ? "default" : "outline"} onClick={() => setMethod("card")}>
                 Card
               </Button>
+              <Button
+                type="button"
+                variant={method === "paypal" ? "default" : "outline"}
+                onClick={() => setMethod("paypal")}
+                disabled={!paypalButtonsEnabled}
+              >
+                PayPal
+              </Button>
               <Button type="button" variant={method === "bank" ? "default" : "outline"} onClick={() => setMethod("bank")}>
                 Bank transfer
               </Button>
             </div>
 
-            {method === "card" ? (
+            {method === "paypal" ? (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div>
+                    <p className="font-medium text-foreground">PayPal</p>
+                    <p className="text-muted-foreground">Env: {paypal.env}</p>
+                  </div>
+                  <span className="text-muted-foreground">{paypalButtonsEnabled ? "Ready" : "Not configured"}</span>
+                </div>
+
+                {paypal.error ? <p className="text-sm text-muted-foreground">{paypal.error}</p> : null}
+
+                <PayPalButtonsSection
+                  disabled={!canComplete || paying || totalAfterPromoUsd == null || !paypalButtonsEnabled}
+                  payload={{
+                    amount_usd: totalAfterPromoUsd ?? 0,
+                    subscription_years: state.subscriptionYears ?? 0,
+                    promo_code: state.promoCode,
+                    domain: state.domain,
+                    selected_template_id: state.selectedTemplateId,
+                    selected_template_name: state.selectedTemplateName,
+                    customer_name: state.details.name,
+                    customer_email: state.details.email,
+                  }}
+                  onOrderDbId={(id) => setLastOrderId(id)}
+                  onSuccess={() => navigate("/payment/success")}
+                  onError={(msg) =>
+                    toast({
+                      variant: msg === "Canceled" ? "default" : "destructive",
+                      title: msg === "Canceled" ? "Canceled" : "Payment failed",
+                      description: msg === "Canceled" ? "" : msg,
+                    })
+                  }
+                />
+
+                {lastOrderId ? (
+                  <p className="text-sm text-muted-foreground">
+                    Last order id: <span className="font-medium text-foreground">{lastOrderId}</span>
+                  </p>
+                ) : null}
+              </div>
+            ) : method === "card" ? (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <div>
                     <p className="font-medium text-foreground">
-                      {gateway === "xendit" ? "Xendit Invoice" : "Midtrans Card (3DS)"}
+                      {gateway === "xendit" ? "Xendit Invoice" : gateway === "midtrans" ? "Midtrans Card (3DS)" : "Card"}
                     </p>
                     {gateway === "midtrans" ? <p className="text-muted-foreground">Env: {midtrans.env}</p> : null}
                   </div>
@@ -443,30 +518,31 @@ export default function Payment() {
           <Button type="button" variant="outline" onClick={() => navigate("/order/subscription")}>
             Back
           </Button>
-          <PaymentConfirmDialog
-            open={confirmOpen}
-            onOpenChange={(o) => {
-              if (paying) return;
-              setConfirmOpen(o);
-            }}
-            confirming={paying}
-            disabled={
-              !canComplete ||
-              method !== "card" ||
-              paying ||
-              totalAfterPromoUsd == null ||
-              (gateway === "midtrans" ? !midtrans.ready || !isCardFormValid : false)
-            }
-            amountUsdFormatted={totalAfterPromoUsd == null ? "—" : usdFormatter.format(totalAfterPromoUsd)}
-            triggerText={gateway === "xendit" ? "Pay with Xendit" : "Pay with Card"}
-            confirmText={gateway === "xendit" ? "Confirm & Continue" : "Confirm & Pay"}
-            note={
-              gateway === "xendit"
-                ? "You will be redirected to Xendit Invoice checkout."
-                : "During 3DS verification, Midtrans may display the amount in IDR."
-            }
-            onConfirm={gateway === "xendit" ? startXenditInvoice : startCardPayment}
-          />
+            {method === "card" ? (
+              <PaymentConfirmDialog
+                open={confirmOpen}
+                onOpenChange={(o) => {
+                  if (paying) return;
+                  setConfirmOpen(o);
+                }}
+                confirming={paying}
+                disabled={
+                  !canComplete ||
+                  paying ||
+                  totalAfterPromoUsd == null ||
+                  (gateway === "midtrans" ? !midtrans.ready || !isCardFormValid : false)
+                }
+                amountUsdFormatted={totalAfterPromoUsd == null ? "—" : usdFormatter.format(totalAfterPromoUsd)}
+                triggerText={gateway === "xendit" ? "Pay with Xendit" : "Pay with Card"}
+                confirmText={gateway === "xendit" ? "Confirm & Continue" : "Confirm & Pay"}
+                note={
+                  gateway === "xendit"
+                    ? "You will be redirected to Xendit Invoice checkout."
+                    : "During 3DS verification, Midtrans may display the amount in IDR."
+                }
+                onConfirm={gateway === "xendit" ? startXenditInvoice : startCardPayment}
+              />
+            ) : null}
         </div>
       </div>
     </OrderLayout>

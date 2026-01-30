@@ -21,6 +21,8 @@ import { useSchemaIntegration } from "@/pages/dashboard/super-admin/useSchemaInt
 import { MidtransIntegrationCard } from "@/components/super-admin/MidtransIntegrationCard";
 import { useMidtransIntegration } from "@/pages/dashboard/super-admin/useMidtransIntegration";
 import { XenditIntegrationCard } from "@/components/super-admin/XenditIntegrationCard";
+import { PaypalIntegrationCard } from "@/components/super-admin/PaypalIntegrationCard";
+import { usePaypalIntegration } from "@/pages/dashboard/super-admin/usePaypalIntegration";
 
 const GSC_SETTINGS_FN = "super-admin-gsc-settings";
 
@@ -32,6 +34,7 @@ export default function SuperAdminCms() {
   const robots = useRobotsTxtIntegration({ navigate });
   const schema = useSchemaIntegration({ navigate });
   const midtrans = useMidtransIntegration({ navigate });
+  const paypal = usePaypalIntegration({ navigate });
 
   const [domainduckKey, setDomainduckKey] = useState("");
   const [domainduckConfigured, setDomainduckConfigured] = useState(false);
@@ -484,6 +487,25 @@ export default function SuperAdminCms() {
           serverKeyValue={midtrans.serverKeyValue}
           onServerKeyChange={midtrans.setServerKeyValue}
           onSaveApiKeys={midtrans.onSaveApiKeys}
+        />
+
+        <PaypalIntegrationCard
+          loading={paypal.loading}
+          status={paypal.status}
+          activeEnv={paypal.activeEnv}
+          onActiveEnvChange={paypal.setActiveEnv}
+          onSaveActiveEnv={paypal.onSaveActiveEnv}
+          clientIdEnv={paypal.clientIdEnv}
+          onClientIdEnvChange={paypal.setClientIdEnv}
+          clientIdValue={paypal.clientIdValue}
+          onClientIdValueChange={paypal.setClientIdValue}
+          onSaveClientId={paypal.onSaveClientId}
+          secretEnv={paypal.secretEnv}
+          onSecretEnvChange={paypal.setSecretEnv}
+          secretValue={paypal.secretValue}
+          onSecretValueChange={paypal.setSecretValue}
+          onSaveSecret={paypal.onSaveSecret}
+          onRefresh={paypal.onRefresh}
         />
 
         <XenditIntegrationCard
