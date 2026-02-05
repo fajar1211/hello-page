@@ -76,7 +76,6 @@ export default {
         cream: "hsl(var(--cream))",
         sage: "hsl(var(--sage))",
         navy: "hsl(var(--navy))",
-        footer: "hsl(var(--footer))",
       },
       borderRadius: {
         lg: "var(--radius)",
