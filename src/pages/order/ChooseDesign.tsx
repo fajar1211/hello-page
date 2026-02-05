@@ -84,12 +84,17 @@ export default function ChooseDesign() {
                   <div className="mb-4 overflow-hidden rounded-md border bg-muted">
                     <AspectRatio ratio={16 / 9}>
                       {previewImg ? (
-                        <img src={previewImg} alt={`Preview ${tmplt.name}`} className="h-full w-full object-cover" loading="lazy" />
+                        <img
+                          src={previewImg}
+                          alt={`Preview ${tmplt.name}`}
+                          className="h-full w-full object-contain bg-background"
+                          loading="lazy"
+                        />
                       ) : (
                         <img
                           src="/placeholder.svg"
                           alt="Template preview placeholder"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain bg-background"
                           loading="lazy"
                         />
                       )}
