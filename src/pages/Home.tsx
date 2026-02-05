@@ -41,7 +41,7 @@ export default function Home() {
               <span className="block text-gradient">{t("home.h1b")}</span>
             </h1>
 
-            <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in my-[14px]" style={{
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto animate-fade-in my-[14px] md:text-base" style={{
             animationDelay: "0.1s"
           }}>
               {t("home.heroSub")}
