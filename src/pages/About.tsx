@@ -3,6 +3,8 @@ import { ArrowRight, Heart, Users, Globe, DollarSign, CheckCircle } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PublicLayout } from '@/components/layout/PublicLayout';
+import { PageHero } from '@/components/layout/PageHero';
+import heroAbout from '@/assets/hero-about.jpg';
 import { usePageSeo } from '@/hooks/usePageSeo';
 
 const values = [
@@ -46,18 +48,15 @@ export default function About() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="py-16 md:py-24 gradient-hero">
-        <div className="container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-              Marketing Made <span className="text-gradient">Personal</span>
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-              We believe great marketing shouldn't require big budgets or complex agency relationships.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        backgroundImage={heroAbout}
+        title={
+          <>
+            Marketing Made <span className="text-primary">Personal</span>
+          </>
+        }
+        subtitle={"We believe great marketing shouldn't require big budgets or complex agency relationships."}
+      />
 
       {/* Story */}
       <section className="py-20 md:py-28">

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageHero } from "@/components/layout/PageHero";
+import heroPackages from "@/assets/hero-packages.jpg";
 import { usePageSeo } from "@/hooks/usePageSeo";
 
 type FaqRow = {
@@ -97,18 +99,15 @@ export default function Packages() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="py-16 md:py-24 gradient-hero">
-        <div className="container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-              Simple, Transparent <span className="text-gradient">Pricing</span>
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Choose the package that fits your needs. No hidden fees, no long-term contracts.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        backgroundImage={heroPackages}
+        title={
+          <>
+            Simple, Transparent <span className="text-primary">Pricing</span>
+          </>
+        }
+        subtitle={"Choose the package that fits your needs. No hidden fees, no long-term contracts."}
+      />
 
       {/* Packages */}
       <section className="py-20 md:py-28">

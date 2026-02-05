@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { PublicLayout } from '@/components/layout/PublicLayout';
+import { PageHero } from '@/components/layout/PageHero';
+import heroContact from '@/assets/hero-contact.jpg';
 import { supabase } from '@/integrations/supabase/client';
 import { usePageSeo } from '@/hooks/usePageSeo';
 
@@ -132,18 +134,15 @@ export default function Contact() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="py-16 md:py-24 gradient-hero">
-        <div className="container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-              Let's <span className="text-gradient">Connect</span>
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Have a question or ready to get started? We'd love to hear from you.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        backgroundImage={heroContact}
+        title={
+          <>
+            Let's <span className="text-primary">Connect</span>
+          </>
+        }
+        subtitle={"Have a question or ready to get started? We'd love to hear from you."}
+      />
 
       {/* Contact Form & Info */}
       <section className="py-20 md:py-28">

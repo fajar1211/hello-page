@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageHero } from "@/components/layout/PageHero";
+import heroServices from "@/assets/hero-services.jpg";
 import { usePageSeo } from "@/hooks/usePageSeo";
 
 type FaqRow = {
@@ -204,14 +206,11 @@ export default function Services() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="py-16 md:py-24 gradient-hero">
-        <div className="container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">{content.heroTitle}</h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">{content.heroSubtitle}</p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        backgroundImage={heroServices}
+        title={content.heroTitle}
+        subtitle={content.heroSubtitle}
+      />
 
       {/* Services */}
       <section className="py-20 md:py-28">

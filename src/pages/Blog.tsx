@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { PageHero } from "@/components/layout/PageHero";
+import heroBlog from "@/assets/hero-blog.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageSeo } from "@/hooks/usePageSeo";
 
@@ -99,18 +101,15 @@ export default function Blog() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="py-16 md:py-24 gradient-hero">
-        <div className="container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-              Marketing Tips & <span className="text-gradient">Insights</span>
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Practical advice to help you grow your business online. No jargon, just helpful tips.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        backgroundImage={heroBlog}
+        title={
+          <>
+            Marketing Tips & <span className="text-primary">Insights</span>
+          </>
+        }
+        subtitle={"Practical advice to help you grow your business online. No jargon, just helpful tips."}
+      />
 
       {/* Blog Posts */}
       <section className="py-20 md:py-28">
