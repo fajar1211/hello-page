@@ -33,10 +33,10 @@ export default function Home() {
 
         <div className="container relative z-10">
           {/* Offset hero content by banner height so nothing is covered on any breakpoint */}
-          <div className="mx-auto max-w-3xl text-center" style={{
+          <div className="mx-auto max-w-4xl text-center" style={{
           paddingTop: "calc(var(--homepage-promo-height, 0px) + clamp(0.002125rem, 0.0105vh, 0.00625rem))"
         }}>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground animate-fade-in">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance animate-fade-in">
               <span className="block">{t("home.h1a")}</span>
               <span className="block text-gradient">{t("home.h1b")}</span>
             </h1>
