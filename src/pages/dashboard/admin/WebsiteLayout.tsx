@@ -20,6 +20,15 @@ import {
 } from "./website-layout/types";
 
 const SETTINGS_KEY = "website_layout";
+const LAYOUT_CACHE_KEY = "ema.website_layout_cache.v1";
+
+function writeLayoutCache(value: WebsiteLayoutSettings) {
+  try {
+    localStorage.setItem(LAYOUT_CACHE_KEY, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
+}
 
 export default function WebsiteLayout() {
   const { toast } = useToast();
@@ -61,11 +70,11 @@ export default function WebsiteLayout() {
         const normalized = sanitizeWebsiteLayoutSettings(data?.value);
         setSettings(normalized);
         setBaseline(normalized);
+        writeLayoutCache(normalized);
       }
       setLoading(false);
     })();
   }, []);
-
 
   const saveNow = async (nextSettings: WebsiteLayoutSettings) => {
     setSaving(true);
@@ -80,6 +89,9 @@ export default function WebsiteLayout() {
       setSaving(false);
       return false;
     }
+
+    // Update cache immediately so public pages don't flash old defaults on next navigation.
+    writeLayoutCache(nextSettings);
 
     setLastSavedAt(new Date());
     setSaving(false);

@@ -8,10 +8,33 @@ import {
 } from "@/pages/dashboard/admin/website-layout/types";
 
 const SETTINGS_KEY = "website_layout";
+const LAYOUT_CACHE_KEY = "ema.website_layout_cache.v1";
+
+function readLayoutCache(): WebsiteLayoutSettings | null {
+  try {
+    const raw = localStorage.getItem(LAYOUT_CACHE_KEY);
+    if (!raw) return null;
+    return sanitizeWebsiteLayoutSettings(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+function writeLayoutCache(value: WebsiteLayoutSettings) {
+  try {
+    localStorage.setItem(LAYOUT_CACHE_KEY, JSON.stringify(value));
+  } catch {
+    // ignore (storage might be full/disabled)
+  }
+}
 
 export function useWebsiteLayoutSettings() {
+  const cached = typeof window !== "undefined" ? readLayoutCache() : null;
+  const hasCache = !!cached;
+
   const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<WebsiteLayoutSettings>(defaultWebsiteLayoutSettings);
+  // Important: initialize from cache to avoid flashing default brand/logo.
+  const [settings, setSettings] = useState<WebsiteLayoutSettings>(cached ?? defaultWebsiteLayoutSettings);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,9 +50,11 @@ export function useWebsiteLayoutSettings() {
 
       if (error) {
         console.error("Failed to load website layout settings", error);
-        setSettings(defaultWebsiteLayoutSettings);
+        // Keep current state (cache/default).
       } else {
-        setSettings(sanitizeWebsiteLayoutSettings(data?.value));
+        const next = sanitizeWebsiteLayoutSettings(data?.value);
+        setSettings(next);
+        writeLayoutCache(next);
       }
 
       setLoading(false);
@@ -40,8 +65,7 @@ export function useWebsiteLayoutSettings() {
     };
   }, []);
 
-  return useMemo(
-    () => ({ settings, loading }),
-    [settings, loading]
-  );
+  return useMemo(() => ({ settings, loading, hasCache }), [settings, loading, hasCache]);
 }
+
+

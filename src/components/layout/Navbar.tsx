@@ -33,7 +33,7 @@ function translateNavLabel(label: string, href: string, lang: "id" | "en", t: (k
 }
 
 export function Navbar() {
-  const { settings } = useWebsiteLayoutSettings();
+  const { settings, loading, hasCache } = useWebsiteLayoutSettings();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { lang, setLang, t } = useI18n();
@@ -52,11 +52,18 @@ export function Navbar() {
     return raw;
   }, [settings.header.secondaryCtaLabel, t]);
 
+  const showPlaceholder = loading && !hasCache;
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          {settings.header.logoUrl ? (
+          {showPlaceholder ? (
+            <>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted animate-pulse" />
+              <div className="h-5 w-32 rounded bg-muted animate-pulse" />
+            </>
+          ) : settings.header.logoUrl ? (
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted overflow-hidden">
               <img
                 src={settings.header.logoUrl}
@@ -70,7 +77,9 @@ export function Navbar() {
               <span className="text-lg font-bold text-primary-foreground">{settings.header.brandMarkText}</span>
             </div>
           )}
-          <span className="text-xl font-bold text-foreground">{settings.header.brandName}</span>
+          {showPlaceholder ? null : (
+            <span className="text-xl font-bold text-foreground">{settings.header.brandName}</span>
+          )}
         </Link>
 
         {/* Desktop Navigation (show from lg so tablet still uses the mobile menu) */}

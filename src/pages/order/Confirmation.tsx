@@ -10,7 +10,7 @@ export default function Confirmation() {
   const { reset } = useOrder();
 
   return (
-    <OrderLayout title="Thank you" step="done" sidebar={<OrderSummaryCard />}>
+    <OrderLayout title="Thank you" step="payment" sidebar={<OrderSummaryCard />}>
       <Card className="shadow-soft">
         <CardHeader>
           <CardTitle className="text-base">Order received</CardTitle>

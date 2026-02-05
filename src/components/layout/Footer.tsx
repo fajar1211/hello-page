@@ -17,8 +17,10 @@ function translateFooterLinkLabel(label: string, href: string, t: (k: any) => st
 }
 
 export function Footer() {
-  const { settings } = useWebsiteLayoutSettings();
+  const { settings, loading, hasCache } = useWebsiteLayoutSettings();
   const { t } = useI18n();
+
+  const showPlaceholder = loading && !hasCache;
 
   return (
     <footer className="bg-navy text-sidebar-foreground">
@@ -30,9 +32,17 @@ export function Footer() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                 <span className="text-lg font-bold text-primary-foreground">{settings.header.brandMarkText}</span>
               </div>
-              <span className="text-xl font-bold">{settings.header.brandName}</span>
+              {showPlaceholder ? (
+                <span className="inline-block h-5 w-32 rounded bg-sidebar-foreground/20 animate-pulse" />
+              ) : (
+                <span className="text-xl font-bold">{settings.header.brandName}</span>
+              )}
             </Link>
-            <p className="text-sm text-sidebar-foreground/70 max-w-xs">{settings.footer.tagline}</p>
+            {showPlaceholder ? (
+              <div className="h-10 w-64 rounded bg-sidebar-foreground/10 animate-pulse" />
+            ) : (
+              <p className="text-sm text-sidebar-foreground/70 max-w-xs">{settings.footer.tagline}</p>
+            )}
           </div>
 
           {/* Quick Links */}
