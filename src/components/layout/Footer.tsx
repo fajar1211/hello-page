@@ -29,13 +29,30 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <span className="text-lg font-bold text-primary-foreground">{settings.header.brandMarkText}</span>
-              </div>
               {showPlaceholder ? (
-                <span className="inline-block h-5 w-32 rounded bg-sidebar-foreground/20 animate-pulse" />
+                <>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-foreground/10 animate-pulse" />
+                  <div className="h-5 w-32 rounded bg-sidebar-foreground/10 animate-pulse" />
+                </>
+              ) : settings.header.logoUrl ? (
+                <>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-background overflow-hidden">
+                    <img
+                      src={settings.header.logoUrl}
+                      alt={settings.header.logoAlt || settings.header.brandName}
+                      loading="lazy"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                  <span className="text-xl font-bold">{settings.header.brandName}</span>
+                </>
               ) : (
-                <span className="text-xl font-bold">{settings.header.brandName}</span>
+                <>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                    <span className="text-lg font-bold text-primary-foreground">{settings.header.brandMarkText}</span>
+                  </div>
+                  <span className="text-xl font-bold">{settings.header.brandName}</span>
+                </>
               )}
             </Link>
             {showPlaceholder ? (

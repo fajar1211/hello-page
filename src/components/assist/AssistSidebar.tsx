@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWebsiteLayoutSettings } from "@/hooks/useWebsiteLayout";
 
 export type AssistNavItem = {
   title: string;
@@ -33,6 +34,7 @@ export function AssistSidebar({
 }) {
   const { open } = useSidebar();
   const { user } = useAuth();
+  const { settings } = useWebsiteLayoutSettings();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const showMessagesBadge = useMemo(() => unreadCount > 0, [unreadCount]);
@@ -115,13 +117,26 @@ export function AssistSidebar({
       <SidebarContent>
         {/* Brand */}
         <div className="h-12 flex items-center gap-3 px-3 border-b border-sidebar-border">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-primary">
-            <span className="text-sm font-bold text-sidebar-primary-foreground">E</span>
-          </div>
+          {settings.header.logoUrl ? (
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-primary overflow-hidden">
+              <img
+                src={settings.header.logoUrl}
+                alt={settings.header.logoAlt || settings.header.brandName}
+                loading="lazy"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-primary">
+              <span className="text-sm font-bold text-sidebar-primary-foreground">
+                {settings.header.brandMarkText}
+              </span>
+            </div>
+          )}
           {open && (
             <div className="min-w-0">
               <div className="text-sm font-semibold text-sidebar-foreground truncate">
-                EasyMarketingAssist
+                {settings.header.brandName}
               </div>
               <div className="text-xs text-sidebar-foreground/70 truncate">
                 Assistant Dashboard

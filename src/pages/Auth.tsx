@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { useWebsiteLayoutSettings } from '@/hooks/useWebsiteLayout';
  
 type AppRole = 'user' | 'assist';
 
@@ -228,6 +229,9 @@ export default function Auth() {
     }
   };
 
+  const { settings: layoutSettings, loading: layoutLoading, hasCache: layoutHasCache } = useWebsiteLayoutSettings();
+  const showLayoutPlaceholder = layoutLoading && !layoutHasCache;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -250,10 +254,31 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="text-xl font-bold text-primary-foreground">E</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">EasyMarketingAssist</span>
+            {showLayoutPlaceholder ? (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted animate-pulse" />
+                <div className="h-6 w-40 rounded bg-muted animate-pulse" />
+              </>
+            ) : layoutSettings.header.logoUrl ? (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background overflow-hidden">
+                  <img
+                    src={layoutSettings.header.logoUrl}
+                    alt={layoutSettings.header.logoAlt || layoutSettings.header.brandName}
+                    loading="lazy"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <span className="text-2xl font-bold text-foreground">{layoutSettings.header.brandName}</span>
+              </>
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                  <span className="text-xl font-bold text-primary-foreground">{layoutSettings.header.brandMarkText}</span>
+                </div>
+                <span className="text-2xl font-bold text-foreground">{layoutSettings.header.brandName}</span>
+              </>
+            )}
           </Link>
         </div>
 
