@@ -67,6 +67,9 @@
     --cream: 40 33% 98%;
     --sage: 160 25% 90%;
     --navy: 220 25% 18%;
+
+    /* Footer background (#cc6060) */
+    --footer: 0 51% 59%;
   }
 
   .dark {
@@ -109,6 +112,9 @@
     --sidebar-accent-foreground: 220 15% 95%;
     --sidebar-border: 220 25% 15%;
     --sidebar-ring: 0 72% 51%;
+
+    /* Footer background (#cc6060) */
+    --footer: 0 51% 59%;
   }
 }
 
