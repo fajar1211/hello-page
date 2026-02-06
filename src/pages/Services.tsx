@@ -233,6 +233,18 @@ function sanitizeServices(value: unknown, fallback: ServicesPageSettings): Servi
   };
 }
 
+function pickSettingsValueForLang(value: unknown, lang: "id" | "en"): unknown | null {
+  // Supports website_settings.value shaped like:
+  // { id: { ...ServicesPageSettings }, en: { ...ServicesPageSettings } }
+  if (!value || typeof value !== "object") return null;
+  const v = value as any;
+
+  const maybe = v?.[lang];
+  if (maybe && typeof maybe === "object") return maybe;
+
+  return null;
+}
+
 function renderTitleLastWordPrimary(title: string) {
   const trimmed = (title ?? "").trim();
   if (!trimmed) return null;
@@ -272,9 +284,22 @@ export default function Services() {
         .eq("key", SETTINGS_KEY)
         .maybeSingle();
 
-      if (!error) setContent(sanitizeServices(data?.value, fallback));
+      if (error) return;
+
+      // Prefer bilingual settings when available.
+      const picked = pickSettingsValueForLang(data?.value, lang);
+      if (picked) {
+        setContent(sanitizeServices(picked, fallback));
+        return;
+      }
+
+      // Backwards-compat: if settings are monolingual, treat them as Indonesian only
+      // so EN toggle still switches to EN fallback text.
+      if (lang === "id") {
+        setContent(sanitizeServices(data?.value, fallback));
+      }
     })();
-  }, [fallback]);
+  }, [fallback, lang]);
 
   useEffect(() => {
     (async () => {
