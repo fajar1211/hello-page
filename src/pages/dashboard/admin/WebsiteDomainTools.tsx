@@ -431,9 +431,13 @@ export default function WebsiteDomainTools() {
                     onClick={() => {
                       const id = `t${Date.now()}`;
                       setTemplates((prev) => {
-                        const defaultCategory = (categories[0]?.name ?? "business") as any;
+                        const baseCategory =
+                          templateCategoryFilter !== "all" && templateCategoryFilter
+                            ? (templateCategoryFilter as any)
+                            : ((categories[0]?.name ?? "business") as any);
+
                         const maxSortInCategory = prev
-                          .filter((t) => String(t.category ?? "").trim() === defaultCategory)
+                          .filter((t) => String(t.category ?? "").trim() === String(baseCategory ?? "").trim())
                           .reduce((max, t) => Math.max(max, Number(t.sort_order ?? 0)), 0);
 
                         return [
@@ -441,7 +445,7 @@ export default function WebsiteDomainTools() {
                           {
                             id,
                             name: "New Template",
-                            category: defaultCategory,
+                            category: baseCategory,
                             is_active: true,
                             sort_order: maxSortInCategory + 1,
                           },
