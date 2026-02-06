@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { useWebsiteLayoutSettings } from '@/hooks/useWebsiteLayout';
+import { useI18n } from '@/hooks/useI18n';
  
 type AppRole = 'user' | 'assist';
 
@@ -71,6 +72,7 @@ export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, role, signIn, signUp, loading } = useAuth();
+  const { lang, setLang, t } = useI18n();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -249,6 +251,17 @@ export default function Auth() {
         <ArrowLeft className="h-4 w-4" />
         Back to Home
       </Link>
+
+      <div className="absolute top-6 right-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setLang(lang === "id" ? "en" : "id")}
+          aria-label="Toggle language"
+        >
+          {lang === "id" ? t("lang.en") : t("lang.id")}
+        </Button>
+      </div>
 
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         {/* Logo */}

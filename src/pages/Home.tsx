@@ -51,7 +51,7 @@ export default function Home() {
         }}>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance animate-fade-in">
               <span className="block">{t("home.h1a")}</span>
-              <span className="block text-gradient">{t("home.h1b")}</span>
+              <span className="block text-primary">{t("home.h1b")}</span>
             </h1>
 
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto animate-fade-in my-[14px] md:text-base" style={{
@@ -116,7 +116,7 @@ export default function Home() {
             animationDelay: `${index * 0.1}s`
           }}>
                 <CardContent className="pt-8 pb-8 text-center">
-                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10 text-accent mb-6">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
                     <item.icon className="h-7 w-7" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground mb-3">{item.title}</h3>
