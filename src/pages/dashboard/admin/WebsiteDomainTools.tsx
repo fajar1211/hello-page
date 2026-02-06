@@ -25,6 +25,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+} from "@/components/ui/pagination";
 import { Plus, RefreshCcw, Save, Trash2, Upload, X, Pencil } from "lucide-react";
 
 type TemplateRow = {
@@ -69,7 +76,7 @@ export default function WebsiteDomainTools() {
   const [templateQuery, setTemplateQuery] = useState("");
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>("all");
   const [templatePage, setTemplatePage] = useState(1);
-  const TEMPLATE_PAGE_SIZE = 20;
+  const TEMPLATE_PAGE_SIZE = 10;
 
   const [categoryQuery, setCategoryQuery] = useState("");
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; src?: string; title?: string }>({ open: false });
@@ -176,10 +183,41 @@ export default function WebsiteDomainTools() {
     setTemplatePage(1);
   }, [templateQuery, templateCategoryFilter]);
 
+  useEffect(() => {
+    // Clamp if total pages changes while user is on a later page
+    setTemplatePage((p) => Math.min(Math.max(1, p), totalTemplatePages));
+  }, [totalTemplatePages]);
+
   const pagedTemplates = useMemo(() => {
     const start = (templatePage - 1) * TEMPLATE_PAGE_SIZE;
     return filteredTemplates.slice(start, start + TEMPLATE_PAGE_SIZE);
   }, [filteredTemplates, templatePage]);
+
+  const templatePageItems = useMemo(() => {
+    if (totalTemplatePages <= 1) return [] as Array<number | "ellipsis">;
+
+    const items: Array<number | "ellipsis"> = [];
+    const add = (v: number | "ellipsis") => items.push(v);
+
+    const maxNumbers = 5; // show up to 5 page numbers
+
+    if (totalTemplatePages <= maxNumbers + 2) {
+      for (let i = 1; i <= totalTemplatePages; i++) add(i);
+      return items;
+    }
+
+    add(1);
+
+    const left = Math.max(2, templatePage - 1);
+    const right = Math.min(totalTemplatePages - 1, templatePage + 1);
+
+    if (left > 2) add("ellipsis");
+    for (let i = left; i <= right; i++) add(i);
+    if (right < totalTemplatePages - 1) add("ellipsis");
+
+    add(totalTemplatePages);
+    return items;
+  }, [templatePage, totalTemplatePages]);
 
   const updateTemplate = (id: string, patch: Partial<TemplateRow>) => {
     setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
@@ -447,24 +485,62 @@ export default function WebsiteDomainTools() {
                   >
                     <Plus className="h-4 w-4 mr-2" /> Add Template
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTemplatePage((p) => Math.max(1, p - 1))}
-                    disabled={templatePage <= 1}
-                  >
-                    Prev
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTemplatePage((p) => Math.min(totalTemplatePages, p + 1))}
-                    disabled={templatePage >= totalTemplatePages}
-                  >
-                    Next
-                  </Button>
+                  <Pagination className="mx-0 w-auto justify-end">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          size="default"
+                          aria-label="Previous page"
+                          className="gap-1 pl-2.5"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setTemplatePage((p) => Math.max(1, p - 1));
+                          }}
+                        >
+                          <span>Prev</span>
+                        </PaginationLink>
+                      </PaginationItem>
+
+                      {templatePageItems.map((it, idx) =>
+                        it === "ellipsis" ? (
+                          <PaginationItem key={`e-${idx}`}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={it}>
+                            <PaginationLink
+                              href="#"
+                              size="icon"
+                              isActive={it === templatePage}
+                              aria-label={`Page ${it}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setTemplatePage(it);
+                              }}
+                            >
+                              {it}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ),
+                      )}
+
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          size="default"
+                          aria-label="Next page"
+                          className="gap-1 pr-2.5"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setTemplatePage((p) => Math.min(totalTemplatePages, p + 1));
+                          }}
+                        >
+                          <span>Next</span>
+                        </PaginationLink>
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               </div>
             </CardHeader>
