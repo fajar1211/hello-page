@@ -18,8 +18,9 @@ type Payload = {
   customer_email: string;
 };
 
-// Keep consistent with Midtrans flow.
-const USD_TO_IDR_RATE = 16000;
+// Amounts in the order flow are displayed in IDR.
+// Keep consistency: treat incoming `amount_usd` as an IDR amount (legacy field name).
+// Do NOT apply a second USD→IDR conversion here.
 
 function asTrimmedString(v: unknown, max = 255): string {
   const s = String(v ?? "").trim();
@@ -98,8 +99,8 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
     const apiKey = await getPlainXenditKey(admin);
 
-    const amount_idr = Math.max(1, Math.round(amount_usd * USD_TO_IDR_RATE));
-    const external_id = `ema-xendit-${crypto.randomUUID()}`;
+     const amount_idr = Math.max(1, Math.round(amount_usd));
+     const external_id = `ema-xendit-${crypto.randomUUID()}`;
 
     // Create DB order first (reuse existing schema; store provider as xendit).
     const { data: orderRow, error: orderErr } = await admin
@@ -130,14 +131,14 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
         Authorization: xenditBasicAuth(apiKey),
       },
-      body: JSON.stringify({
-        external_id,
-        amount: amount_idr,
-        currency: "IDR",
-        description: `Order ${domain} (${subscription_years} year) – USD ${amount_usd.toFixed(2)} (charged in IDR)`,
-        payer_email: customer_email,
-        customer: {
-          given_names: customer_name,
+       body: JSON.stringify({
+         external_id,
+         amount: amount_idr,
+         currency: "IDR",
+         description: `Order ${domain} (${subscription_years} tahun) – Rp ${amount_idr.toLocaleString("id-ID")}`,
+         payer_email: customer_email,
+         customer: {
+           given_names: customer_name,
           email: customer_email,
         },
         should_send_email: true,

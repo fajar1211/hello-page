@@ -360,7 +360,7 @@ export default function Payment() {
   };
 
   const startXenditInvoice = async () => {
-    if (totalAfterPromoUsd == null) {
+    if (totalAfterPromoIdr == null) {
       toast({ variant: "destructive", title: t("order.totalNotAvailableTitle") });
       return;
     }
@@ -375,7 +375,9 @@ export default function Payment() {
         xendit?: any;
       }>("xendit-invoice-create", {
         body: {
-          amount_usd: totalAfterPromoUsd,
+          // IMPORTANT: Our UI + summary card display totals in IDR.
+          // Send the rounded IDR amount so invoice nominal matches "Total Harga".
+          amount_usd: totalAfterPromoIdr,
           subscription_years: state.subscriptionYears,
           promo_code: state.promoCode,
           domain: state.domain,
