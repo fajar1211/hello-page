@@ -30,7 +30,7 @@ export function OrderPackageAddOns() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Add-ons</CardTitle>
+        <CardTitle className="text-base">Add-ons (Onboarding)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {loading ? (
