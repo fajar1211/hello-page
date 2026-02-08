@@ -49,8 +49,13 @@ export default function Payment() {
   const { toast } = useToast();
   const { state, setPromoCode, setAppliedPromo } = useOrder();
   const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain, state.selectedPackageId);
-  const { rows: durationRows } = usePackageDurations(state.selectedPackageId);
-  const { total: addOnsTotal } = useOrderAddOns({ packageId: state.selectedPackageId, quantities: state.addOns ?? {} });
+
+  // Some flows rely on a default package (domain_pricing_settings.default_package_id).
+  // If user didn't explicitly select a package, we still consider the order complete using the default.
+  const effectivePackageId = state.selectedPackageId ?? pricing.defaultPackageId ?? null;
+
+  const { rows: durationRows } = usePackageDurations(effectivePackageId);
+  const { total: addOnsTotal } = useOrderAddOns({ packageId: effectivePackageId, quantities: state.addOns ?? {} });
   const midtrans = useMidtransOrderSettings();
   const paypal = usePaypalOrderSettings();
 
@@ -238,22 +243,16 @@ export default function Payment() {
   }, [baseTotalUsd, promo, setAppliedPromo, setPromoCode, state.promoCode]);
 
   const canComplete = useMemo(() => {
+    const email = String(state.details.email ?? "").trim();
     return Boolean(
       state.domain &&
         state.selectedTemplateId &&
-        state.selectedPackageId &&
+        effectivePackageId &&
         state.subscriptionYears &&
-        state.details.email &&
+        email &&
         state.details.acceptedTerms,
     );
-  }, [
-    state.details.acceptedTerms,
-    state.details.email,
-    state.domain,
-    state.selectedPackageId,
-    state.selectedTemplateId,
-    state.subscriptionYears,
-  ]);
+  }, [effectivePackageId, state.details.acceptedTerms, state.details.email, state.domain, state.selectedTemplateId, state.subscriptionYears]);
 
   // Load Midtrans 3DS script when card method is selected.
   useEffect(() => {
