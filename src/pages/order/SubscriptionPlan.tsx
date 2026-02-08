@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { OrderLayout } from "@/components/order/OrderLayout";
 import { OrderSummaryCard } from "@/components/order/OrderSummaryCard";
+import { OrderPackagesPreview } from "@/components/order/OrderPackagesPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,11 +77,17 @@ export default function SubscriptionPlan() {
                         <p className="text-base font-semibold text-foreground">{opt.label ?? `${opt.years} Years`}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{t("order.allIn")}</p>
                       </div>
-                      {isSelected ? <Badge variant="secondary">{t("order.selected")}</Badge> : <Badge variant="outline">Plan</Badge>}
+                      {isSelected ? (
+                        <Badge variant="secondary">{t("order.selected")}</Badge>
+                      ) : (
+                        <Badge variant="outline">Plan</Badge>
+                      )}
                     </div>
 
                     <div className="mt-4">
-                      <p className="text-2xl font-bold text-foreground">{opt.totalUsd == null ? "—" : formatUsd(opt.totalUsd)}</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {opt.totalUsd == null ? "—" : formatUsd(opt.totalUsd)}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground">{t("order.totalFor", { years: opt.years })}</p>
                     </div>
                   </button>
@@ -91,6 +98,8 @@ export default function SubscriptionPlan() {
             {pricing.packagePriceUsd == null ? <p className="text-xs text-muted-foreground">{t("order.noteDefaultPackage")}</p> : null}
           </CardContent>
         </Card>
+
+        <OrderPackagesPreview />
 
         <div className="flex items-center justify-between gap-3">
           <Button type="button" variant="outline" onClick={() => navigate("/order/details")}>
