@@ -234,11 +234,11 @@ export default function SuperAdminSubscriptions() {
   const plansCountLabel = useMemo(() => String(plans.length), [plans.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold text-foreground">Subscriptions</h1>
 
       <Tabs defaultValue="subscription" className="w-full">
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="domain">Domain</TabsTrigger>
         </TabsList>
