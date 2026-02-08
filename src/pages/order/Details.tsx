@@ -170,14 +170,27 @@ export default function Details() {
                   control={form.control}
                   name="city"
                   render={({ field }) => {
-                    const provinceCode = form.watch("provinceCode");
-                    const cities = provinceCode ? City.getCitiesOfState("ID", provinceCode) || [] : [];
+                    const provinceValue = form.watch("provinceCode");
+
+                    // provinceCode is supposed to store State.isoCode, but older/saved values could be the province name.
+                    // Normalize to a valid isoCode so City.getCitiesOfState always receives the expected stateCode.
+                    const resolvedProvinceCode = (() => {
+                      if (!provinceValue) return "";
+                      const byIso = provinces.find((p) => p.isoCode === provinceValue);
+                      if (byIso) return byIso.isoCode;
+                      const byName = provinces.find(
+                        (p) => String(p.name).toLowerCase() === String(provinceValue).toLowerCase(),
+                      );
+                      return byName?.isoCode ?? "";
+                    })();
+
+                    const cities = resolvedProvinceCode ? City.getCitiesOfState("ID", resolvedProvinceCode) || [] : [];
                     const cityItems = [...cities].sort((a, b) => String(a.name).localeCompare(String(b.name), "id"));
 
                     return (
                       <FormItem>
                         <FormLabel>{t("order.city")}</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange} disabled={!provinceCode}>
+                        <Select value={field.value} onValueChange={field.onChange} disabled={!resolvedProvinceCode}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder={t("order.selectCity")} />
