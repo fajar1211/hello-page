@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Check, Eye, EyeOff, RefreshCcw, Save, Star, StarOff, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, Check, Eye, EyeOff, RefreshCcw, Save, Star, StarOff, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -72,6 +72,7 @@ export default function WebsitePackages() {
 
   const [cardsAlign, setCardsAlign] = useState<PackagesCardsAlign>("center");
   const [baselineCardsAlign, setBaselineCardsAlign] = useState<PackagesCardsAlign>("center");
+  const [packageOrder, setPackageOrder] = useState<string[] | null>(null);
 
   const fetchPackages = async () => {
     setLoading(true);
@@ -83,7 +84,21 @@ export default function WebsitePackages() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setPackages(((data ?? []) as PackageRow[]).slice().sort(sortPackagesForPublic));
+
+      let next = ((data ?? []) as PackageRow[]).slice().sort(sortPackagesForPublic);
+
+      if (packageOrder && packageOrder.length) {
+        const rank = new Map<string, number>();
+        packageOrder.forEach((id, idx) => rank.set(String(id), idx));
+        next = next.slice().sort((a, b) => {
+          const ra = rank.has(a.id) ? (rank.get(a.id) as number) : Number.POSITIVE_INFINITY;
+          const rb = rank.has(b.id) ? (rank.get(b.id) as number) : Number.POSITIVE_INFINITY;
+          if (ra !== rb) return ra - rb;
+          return sortPackagesForPublic(a, b);
+        });
+      }
+
+      setPackages(next);
     } catch (err) {
       console.error("Error fetching packages:", err);
       toast.error("Failed to load packages");
@@ -104,18 +119,36 @@ export default function WebsitePackages() {
 
       const raw = data?.value as any;
       const nextAlign = sanitizeAlign(raw?.cardsAlign);
+      const nextOrder = Array.isArray(raw?.packageOrder) ? (raw.packageOrder as string[]) : null;
+
       setCardsAlign(nextAlign);
       setBaselineCardsAlign(nextAlign);
+      setPackageOrder(nextOrder);
+
+      if (nextOrder && nextOrder.length) {
+        const rank = new Map<string, number>();
+        nextOrder.forEach((id, idx) => rank.set(String(id), idx));
+        setPackages((prev) =>
+          prev.slice().sort((a, b) => {
+            const ra = rank.has(a.id) ? (rank.get(a.id) as number) : Number.POSITIVE_INFINITY;
+            const rb = rank.has(b.id) ? (rank.get(b.id) as number) : Number.POSITIVE_INFINITY;
+            if (ra !== rb) return ra - rb;
+            return sortPackagesForPublic(a, b);
+          })
+        );
+      }
     } catch (err) {
       // Jika belum ada settings, default ke center.
       setCardsAlign("center");
       setBaselineCardsAlign("center");
+      setPackageOrder(null);
     }
   };
 
   useEffect(() => {
     (async () => {
-      await Promise.all([fetchPackages(), fetchLayoutSettings()]);
+      await fetchLayoutSettings();
+      await fetchPackages();
     })();
   }, []);
 
@@ -131,10 +164,23 @@ export default function WebsitePackages() {
     );
   };
 
+  const movePackage = (id: string, dir: "up" | "down") => {
+    setPackages((prev) => {
+      const idx = prev.findIndex((p) => p.id === id);
+      if (idx === -1) return prev;
+      const nextIdx = dir === "up" ? idx - 1 : idx + 1;
+      if (nextIdx < 0 || nextIdx >= prev.length) return prev;
+      const copy = prev.slice();
+      const [item] = copy.splice(idx, 1);
+      copy.splice(nextIdx, 0, item);
+      return copy;
+    });
+  };
+
   const cancelEdit = async () => {
     setIsEditing(false);
     setCardsAlign(baselineCardsAlign);
-    await fetchPackages();
+    await Promise.all([fetchPackages(), fetchLayoutSettings()]);
   };
 
   const finishEdit = async () => {
@@ -160,13 +206,16 @@ export default function WebsitePackages() {
 
       const { error: layoutErr } = await (supabase as any)
         .from("website_settings")
-        .upsert({ key: LAYOUT_SETTINGS_KEY, value: { cardsAlign } }, { onConflict: "key" });
+        .upsert(
+          { key: LAYOUT_SETTINGS_KEY, value: { cardsAlign, packageOrder: packages.map((p) => p.id) } },
+          { onConflict: "key" }
+        );
       if (layoutErr) throw layoutErr;
 
       toast.success("Public packages updated successfully");
       setLastSavedAt(new Date());
       setBaselineCardsAlign(cardsAlign);
-      await fetchPackages();
+      await Promise.all([fetchPackages(), fetchLayoutSettings()]);
       setIsEditing(false);
     } catch (err) {
       console.error("Error saving packages:", err);
@@ -277,6 +326,7 @@ export default function WebsitePackages() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Urutan</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Price</TableHead>
@@ -288,13 +338,35 @@ export default function WebsitePackages() {
               <TableBody>
                 {packages.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No packages found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  packages.map((pkg) => (
+                  packages.map((pkg, index) => (
                     <TableRow key={pkg.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => movePackage(pkg.id, "up")}
+                            disabled={!isEditing || saving || index === 0}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => movePackage(pkg.id, "down")}
+                            disabled={!isEditing || saving || index === packages.length - 1}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{pkg.name}</TableCell>
                       <TableCell className="capitalize">{pkg.type}</TableCell>
                       <TableCell>{pkg.price != null ? `$${Number(pkg.price).toFixed(2)}` : "—"}</TableCell>

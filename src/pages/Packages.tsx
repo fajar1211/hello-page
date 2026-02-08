@@ -105,12 +105,34 @@ export default function Packages() {
 
       if (!faqRes.error) setFaqs((faqRes.data ?? []) as FaqRow[]);
 
-      if (pkgRes.data) setPackages((pkgRes.data as PublicPackageRow[]).slice().sort(sortPackagesForPublic));
+      if (pkgRes.data) {
+        const base = (pkgRes.data as PublicPackageRow[]).slice().sort(sortPackagesForPublic);
+        const raw = layoutRes?.data?.value as any;
+        const nextAlign = raw?.cardsAlign;
+        const order = Array.isArray(raw?.packageOrder) ? (raw.packageOrder as string[]) : null;
 
-      const raw = layoutRes?.data?.value as any;
-      const nextAlign = raw?.cardsAlign;
-      if (nextAlign === "left" || nextAlign === "center" || nextAlign === "right") {
-        setCardsAlign(nextAlign);
+        if (order && order.length) {
+          const rank = new Map<string, number>();
+          order.forEach((id, idx) => rank.set(String(id), idx));
+          base.sort((a, b) => {
+            const ra = rank.has(a.id) ? (rank.get(a.id) as number) : Number.POSITIVE_INFINITY;
+            const rb = rank.has(b.id) ? (rank.get(b.id) as number) : Number.POSITIVE_INFINITY;
+            if (ra !== rb) return ra - rb;
+            return sortPackagesForPublic(a, b);
+          });
+        }
+
+        setPackages(base);
+
+        if (nextAlign === "left" || nextAlign === "center" || nextAlign === "right") {
+          setCardsAlign(nextAlign);
+        }
+      } else {
+        const raw = layoutRes?.data?.value as any;
+        const nextAlign = raw?.cardsAlign;
+        if (nextAlign === "left" || nextAlign === "center" || nextAlign === "right") {
+          setCardsAlign(nextAlign);
+        }
       }
 
       setLoading(false);
