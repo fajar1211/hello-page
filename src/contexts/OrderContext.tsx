@@ -17,6 +17,8 @@ export type OrderState = {
   selectedTemplateName: string | null;
   selectedPackageId: string | null;
   selectedPackageName: string | null;
+  /** key: package_add_ons.id */
+  addOns: Record<string, number>;
   subscriptionYears: number | null;
   details: OrderDetails;
   promoCode: string;
@@ -34,6 +36,7 @@ type OrderContextValue = {
   setDomainStatus: (status: DomainStatus | null) => void;
   setTemplate: (template: { id: string; name: string } | null) => void;
   setPackage: (pkg: { id: string; name: string } | null) => void;
+  setAddOnQuantity: (addOnId: string, quantity: number) => void;
   setSubscriptionYears: (years: number | null) => void;
   setDetails: (patch: Partial<OrderDetails>) => void;
   setPromoCode: (code: string) => void;
@@ -50,6 +53,7 @@ const defaultState: OrderState = {
   selectedTemplateName: null,
   selectedPackageId: null,
   selectedPackageName: null,
+  addOns: {},
   subscriptionYears: null,
   details: {
     name: "",
@@ -101,7 +105,19 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       ...s,
       selectedPackageId: pkg?.id ?? null,
       selectedPackageName: pkg?.name ?? null,
+      // Reset add-ons when package changes.
+      addOns: {},
     }));
+  }, []);
+
+  const setAddOnQuantity = useCallback((addOnId: string, quantity: number) => {
+    setState((s) => {
+      const q = Number.isFinite(Number(quantity)) ? Math.max(0, Math.floor(Number(quantity))) : 0;
+      const next = { ...(s.addOns ?? {}) };
+      if (q <= 0) delete next[addOnId];
+      else next[addOnId] = q;
+      return { ...s, addOns: next };
+    });
   }, []);
 
   const setSubscriptionYears = useCallback((subscriptionYears: number | null) => setState((s) => ({ ...s, subscriptionYears })), []);
@@ -117,13 +133,14 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       setDomainStatus,
       setTemplate,
       setPackage,
+      setAddOnQuantity,
       setSubscriptionYears,
       setDetails,
       setPromoCode,
       setAppliedPromo,
       reset,
     };
-  }, [reset, setAppliedPromo, setDetails, setDomain, setDomainStatus, setPackage, setPromoCode, setSubscriptionYears, setTemplate, state]);
+  }, [reset, setAddOnQuantity, setAppliedPromo, setDetails, setDomain, setDomainStatus, setPackage, setPromoCode, setSubscriptionYears, setTemplate, state]);
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 }

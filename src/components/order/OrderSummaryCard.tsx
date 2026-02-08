@@ -3,12 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useOrder } from "@/contexts/OrderContext";
 import { useOrderPublicSettings } from "@/hooks/useOrderPublicSettings";
+import { useOrderAddOns } from "@/hooks/useOrderAddOns";
 import { useI18n } from "@/hooks/useI18n";
 
 export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boolean }) {
   const { t, lang } = useI18n();
   const { state } = useOrder();
   const { pricing, contact, subscriptionPlans } = useOrderPublicSettings(state.domain, state.selectedPackageId);
+  const { total: addOnsTotal } = useOrderAddOns({ packageId: state.selectedPackageId, quantities: state.addOns ?? {} });
 
   const formatUsd = (value: number) => {
     try {
@@ -46,13 +48,13 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
     const selectedPlan = subscriptionPlans.find((p) => p.years === state.subscriptionYears);
     const planOverrideUsd =
       typeof selectedPlan?.price_usd === "number" && Number.isFinite(selectedPlan.price_usd) ? selectedPlan.price_usd : null;
-    if (planOverrideUsd != null) return planOverrideUsd;
+    if (planOverrideUsd != null) return planOverrideUsd + addOnsTotal;
 
     const domainUsd = pricing.domainPriceUsd ?? null;
     const pkgUsd = pricing.packagePriceUsd ?? null;
     if (domainUsd == null || pkgUsd == null) return null;
 
-    return (domainUsd + pkgUsd) * state.subscriptionYears;
+    return (domainUsd + pkgUsd) * state.subscriptionYears + addOnsTotal;
   })();
 
   const promoDiscountUsd = (() => {
@@ -91,6 +93,13 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
 
           {showEstPrice ? (
             <>
+              {addOnsTotal > 0 ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">Add-ons</span>
+                  <span className="text-sm font-medium text-foreground">{formatUsd(addOnsTotal)}</span>
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm text-muted-foreground">{t("order.price")}</span>
                 <span className="text-sm font-medium text-foreground">{estTotalLabel}</span>

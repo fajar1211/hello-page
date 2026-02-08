@@ -8,6 +8,7 @@ import { OrderSummaryCard } from "@/components/order/OrderSummaryCard";
 import { PaymentConfirmDialog } from "@/components/order/PaymentConfirmDialog";
 import { useOrder } from "@/contexts/OrderContext";
 import { useOrderPublicSettings } from "@/hooks/useOrderPublicSettings";
+import { useOrderAddOns } from "@/hooks/useOrderAddOns";
 import { validatePromoCode } from "@/hooks/useOrderPromoCode";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +40,8 @@ export default function Payment() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state, setPromoCode, setAppliedPromo } = useOrder();
-  const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain);
+  const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain, state.selectedPackageId);
+  const { total: addOnsTotal } = useOrderAddOns({ packageId: state.selectedPackageId, quantities: state.addOns ?? {} });
   const midtrans = useMidtransOrderSettings();
   const paypal = usePaypalOrderSettings();
 
@@ -143,12 +145,12 @@ export default function Payment() {
     const selectedPlan = subscriptionPlans.find((p) => p.years === state.subscriptionYears);
     const planOverrideUsd =
       typeof selectedPlan?.price_usd === "number" && Number.isFinite(selectedPlan.price_usd) ? selectedPlan.price_usd : null;
-    if (planOverrideUsd != null) return planOverrideUsd;
+    if (planOverrideUsd != null) return planOverrideUsd + addOnsTotal;
     const domainUsd = pricing.domainPriceUsd ?? null;
     const pkgUsd = pricing.packagePriceUsd ?? null;
     if (domainUsd == null || pkgUsd == null) return null;
-    return (domainUsd + pkgUsd) * state.subscriptionYears;
-  }, [pricing.domainPriceUsd, pricing.packagePriceUsd, state.subscriptionYears, subscriptionPlans]);
+    return (domainUsd + pkgUsd) * state.subscriptionYears + addOnsTotal;
+  }, [addOnsTotal, pricing.domainPriceUsd, pricing.packagePriceUsd, state.subscriptionYears, subscriptionPlans]);
 
   const totalAfterPromoUsd = useMemo(() => {
     if (baseTotalUsd == null) return null;
