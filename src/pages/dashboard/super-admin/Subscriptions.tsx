@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 import { Plus, Save, Trash2 } from "lucide-react";
 
@@ -543,11 +544,14 @@ export default function SuperAdminSubscriptions() {
 
                         <div className="md:col-span-4">
                           <Label className="text-xs">Description</Label>
-                          <Input
+                          <Textarea
                             value={a.description}
-                            onChange={(e) => setAddOns((prev) => prev.map((x, i) => (i === idx ? { ...x, description: e.target.value } : x)))}
+                            onChange={(e) =>
+                              setAddOns((prev) => prev.map((x, i) => (i === idx ? { ...x, description: e.target.value } : x)))
+                            }
                             disabled={addOnsSaving || !isEditingAddOns}
-                            placeholder='Optional'
+                            placeholder="Optional"
+                            rows={2}
                           />
                         </div>
 
