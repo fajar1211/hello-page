@@ -47,13 +47,21 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
     return `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}`;
   })();
 
+  const durationLabel = state.subscriptionYears
+    ? lang === "id"
+      ? `Durasi ${state.subscriptionYears} Tahun`
+      : `Duration ${state.subscriptionYears} Year(s)`
+    : lang === "id"
+      ? "Durasi —"
+      : "Duration —";
+
   const yearsLabel = state.subscriptionYears
     ? lang === "id"
       ? `${state.subscriptionYears} tahun`
       : `${state.subscriptionYears} year(s)`
     : "—";
 
-  const baseTotalUsd = (() => {
+  const durationPriceIdr = (() => {
     if (!showEstPrice) return null;
     if (!state.subscriptionYears) return null;
 
@@ -68,20 +76,30 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
 
       const baseAnnual = domain + pkg;
       const monthly = baseAnnual / 12;
-      return computeDiscountedTotal({ monthlyPrice: monthly, months, discountPercent }) + addOnsTotal;
+      return computeDiscountedTotal({ monthlyPrice: monthly, months, discountPercent });
     }
 
     // Fallback to legacy website_settings.order_subscription_plans price override.
     const selectedPlan = subscriptionPlans.find((p) => p.years === state.subscriptionYears);
     const planOverrideUsd =
       typeof selectedPlan?.price_usd === "number" && Number.isFinite(selectedPlan.price_usd) ? selectedPlan.price_usd : null;
-    if (planOverrideUsd != null) return planOverrideUsd + addOnsTotal;
+    if (planOverrideUsd != null) return planOverrideUsd;
 
     const domainUsd = pricing.domainPriceUsd ?? null;
     const pkgUsd = pricing.packagePriceUsd ?? null;
     if (domainUsd == null || pkgUsd == null) return null;
 
-    return (domainUsd + pkgUsd) * state.subscriptionYears + addOnsTotal;
+    return (domainUsd + pkgUsd) * state.subscriptionYears;
+  })();
+
+  const baseTotalUsd = (() => {
+    if (!showEstPrice) return null;
+    if (!state.subscriptionYears) return null;
+
+    const durationOnly = durationPriceIdr;
+    if (durationOnly == null) return null;
+
+    return durationOnly + addOnsTotal;
   })();
 
   const packagePlusAddOns = useMemo(() => {
@@ -120,8 +138,8 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">Paket</span>
-            <span className="text-sm font-medium text-foreground">{pricing.packagePriceUsd == null ? "—" : formatIdr(pricing.packagePriceUsd)}</span>
+            <span className="text-sm text-muted-foreground">{durationLabel}</span>
+            <span className="text-sm font-medium text-foreground">{durationPriceIdr == null ? "—" : formatIdr(durationPriceIdr)}</span>
           </div>
 
           <div className="flex items-center justify-between gap-3">
@@ -140,7 +158,7 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
 
               <div className="rounded-xl bg-muted/30 p-3">
                 <h1 className="text-base font-bold text-foreground">Total Harga</h1>
-                <p className="mt-1 text-2xl font-bold text-foreground">{packagePlusAddOns == null ? "—" : formatIdr(packagePlusAddOns)}</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">{baseTotalUsd == null ? "—" : formatIdr(baseTotalUsd)}</p>
               </div>
 
               {state.appliedPromo ? (
