@@ -201,11 +201,19 @@ export default function Payment() {
     return Boolean(
       state.domain &&
         state.selectedTemplateId &&
+        state.selectedPackageId &&
         state.subscriptionYears &&
         state.details.email &&
         state.details.acceptedTerms,
     );
-  }, [state.details.acceptedTerms, state.details.email, state.domain, state.selectedTemplateId, state.subscriptionYears]);
+  }, [
+    state.details.acceptedTerms,
+    state.details.email,
+    state.domain,
+    state.selectedPackageId,
+    state.selectedTemplateId,
+    state.subscriptionYears,
+  ]);
 
   // Load Midtrans 3DS script when card method is selected.
   useEffect(() => {

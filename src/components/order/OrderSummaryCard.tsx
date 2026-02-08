@@ -8,7 +8,7 @@ import { useI18n } from "@/hooks/useI18n";
 export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boolean }) {
   const { t, lang } = useI18n();
   const { state } = useOrder();
-  const { pricing, contact, subscriptionPlans } = useOrderPublicSettings(state.domain);
+  const { pricing, contact, subscriptionPlans } = useOrderPublicSettings(state.domain, state.selectedPackageId);
 
   const formatUsd = (value: number) => {
     try {

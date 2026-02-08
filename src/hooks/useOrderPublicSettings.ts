@@ -141,7 +141,7 @@ function normalizeTldForRow(tld: string): string {
   return (tld ?? "").trim().toLowerCase().replace(/^\./, "");
 }
 
-export function useOrderPublicSettings(domain?: string) {
+export function useOrderPublicSettings(domain?: string, selectedPackageId?: string | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -182,11 +182,13 @@ export function useOrderPublicSettings(domain?: string) {
         const pkgId = (pricingRow as any)?.default_package_id ?? null;
         setDefaultPackageId(pkgId);
 
-        if (pkgId) {
+        const effectivePkgId = selectedPackageId ?? pkgId;
+
+        if (effectivePkgId) {
           const { data: pkgRow } = await (supabase as any)
             .from("packages")
             .select("price")
-            .eq("id", pkgId)
+            .eq("id", effectivePkgId)
             .maybeSingle();
           const p = safeNumber((pkgRow as any)?.price);
           setPackagePriceUsd(p ?? null);
@@ -194,11 +196,11 @@ export function useOrderPublicSettings(domain?: string) {
           setPackagePriceUsd(null);
         }
 
-        if (pkgId) {
+        if (effectivePkgId) {
           const { data: prices } = await (supabase as any)
             .from("domain_tld_prices")
             .select("tld,price_usd")
-            .eq("package_id", pkgId);
+            .eq("package_id", effectivePkgId);
           setTldPrices(
             Array.isArray(prices)
               ? prices
@@ -216,7 +218,7 @@ export function useOrderPublicSettings(domain?: string) {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [selectedPackageId]);
 
   const domainPriceUsd = useMemo(() => {
     if (!tld) return null;
@@ -237,6 +239,7 @@ export function useOrderPublicSettings(domain?: string) {
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
     pricing: {
       defaultPackageId,
+      selectedPackageId: selectedPackageId ?? null,
       tldPrices,
       domainPriceUsd,
       domainTld: tld,

@@ -15,6 +15,8 @@ export type OrderState = {
   domainStatus: DomainStatus | null;
   selectedTemplateId: string | null;
   selectedTemplateName: string | null;
+  selectedPackageId: string | null;
+  selectedPackageName: string | null;
   subscriptionYears: number | null;
   details: OrderDetails;
   promoCode: string;
@@ -31,6 +33,7 @@ type OrderContextValue = {
   setDomain: (domain: string) => void;
   setDomainStatus: (status: DomainStatus | null) => void;
   setTemplate: (template: { id: string; name: string } | null) => void;
+  setPackage: (pkg: { id: string; name: string } | null) => void;
   setSubscriptionYears: (years: number | null) => void;
   setDetails: (patch: Partial<OrderDetails>) => void;
   setPromoCode: (code: string) => void;
@@ -45,6 +48,8 @@ const defaultState: OrderState = {
   domainStatus: null,
   selectedTemplateId: null,
   selectedTemplateName: null,
+  selectedPackageId: null,
+  selectedPackageName: null,
   subscriptionYears: null,
   details: {
     name: "",
@@ -90,6 +95,15 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       selectedTemplateName: template?.name ?? null,
     }));
   }, []);
+
+  const setPackage = useCallback((pkg: { id: string; name: string } | null) => {
+    setState((s) => ({
+      ...s,
+      selectedPackageId: pkg?.id ?? null,
+      selectedPackageName: pkg?.name ?? null,
+    }));
+  }, []);
+
   const setSubscriptionYears = useCallback((subscriptionYears: number | null) => setState((s) => ({ ...s, subscriptionYears })), []);
   const setDetails = useCallback((patch: Partial<OrderDetails>) => setState((s) => ({ ...s, details: { ...s.details, ...patch } })), []);
   const setPromoCode = useCallback((promoCode: string) => setState((s) => ({ ...s, promoCode })), []);
@@ -102,13 +116,14 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       setDomain,
       setDomainStatus,
       setTemplate,
+      setPackage,
       setSubscriptionYears,
       setDetails,
       setPromoCode,
       setAppliedPromo,
       reset,
     };
-  }, [reset, setAppliedPromo, setDetails, setDomain, setDomainStatus, setPromoCode, setSubscriptionYears, setTemplate, state]);
+  }, [reset, setAppliedPromo, setDetails, setDomain, setDomainStatus, setPackage, setPromoCode, setSubscriptionYears, setTemplate, state]);
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 }

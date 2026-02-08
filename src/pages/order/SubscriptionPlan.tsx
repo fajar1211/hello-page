@@ -24,7 +24,7 @@ export default function SubscriptionPlan() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const { state, setSubscriptionYears } = useOrder();
-  const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain);
+  const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain, state.selectedPackageId);
 
   const baseAnnualUsd = useMemo(() => {
     const domain = pricing.domainPriceUsd ?? 0;
@@ -52,60 +52,71 @@ export default function SubscriptionPlan() {
   return (
     <OrderLayout title={t("order.step.plan")} step="plan" sidebar={<OrderSummaryCard />}>
       <div className="space-y-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{t("order.chooseDuration")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">{t("order.includesCosts")}</p>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              {options.map((opt) => {
-                const isSelected = selected === opt.years;
-                return (
-                  <button
-                    key={opt.years}
-                    type="button"
-                    onClick={() => setSubscriptionYears(opt.years)}
-                    className={cn(
-                      "w-full rounded-xl border bg-card p-4 text-left shadow-soft transition will-change-transform",
-                      isSelected ? "ring-2 ring-ring bg-accent/30 shadow-lg scale-[1.01]" : "hover:bg-muted/30 hover:shadow",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-foreground">{opt.label ?? `${opt.years} Years`}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{t("order.allIn")}</p>
-                      </div>
-                      {isSelected ? (
-                        <Badge variant="secondary">{t("order.selected")}</Badge>
-                      ) : (
-                        <Badge variant="outline">Plan</Badge>
-                      )}
-                    </div>
-
-                    <div className="mt-4">
-                      <p className="text-2xl font-bold text-foreground">
-                        {opt.totalUsd == null ? "—" : formatUsd(opt.totalUsd)}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{t("order.totalFor", { years: opt.years })}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {pricing.packagePriceUsd == null ? <p className="text-xs text-muted-foreground">{t("order.noteDefaultPackage")}</p> : null}
-          </CardContent>
-        </Card>
-
         <OrderPackagesPreview />
+
+        {state.selectedPackageId ? (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t("order.chooseDuration")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">{t("order.includesCosts")}</p>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {options.map((opt) => {
+                  const isSelected = selected === opt.years;
+                  return (
+                    <button
+                      key={opt.years}
+                      type="button"
+                      onClick={() => setSubscriptionYears(opt.years)}
+                      className={cn(
+                        "w-full rounded-xl border bg-card p-4 text-left shadow-soft transition will-change-transform",
+                        isSelected ? "ring-2 ring-ring bg-accent/30 shadow-lg scale-[1.01]" : "hover:bg-muted/30 hover:shadow",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-base font-semibold text-foreground">{opt.label ?? `${opt.years} Years`}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{t("order.allIn")}</p>
+                        </div>
+                        {isSelected ? (
+                          <Badge variant="secondary">{t("order.selected")}</Badge>
+                        ) : (
+                          <Badge variant="outline">Plan</Badge>
+                        )}
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="text-2xl font-bold text-foreground">{opt.totalUsd == null ? "—" : formatUsd(opt.totalUsd)}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{t("order.totalFor", { years: opt.years })}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {pricing.packagePriceUsd == null ? <p className="text-xs text-muted-foreground">{t("order.noteDefaultPackage")}</p> : null}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="py-6">
+              <p className="text-sm text-muted-foreground">Silakan pilih paket terlebih dulu untuk melihat pilihan durasi.</p>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex items-center justify-between gap-3">
           <Button type="button" variant="outline" onClick={() => navigate("/order/details")}>
             {t("common.back")}
           </Button>
-          <Button type="button" size="lg" disabled={!selected} onClick={() => navigate("/order/payment")}>
+          <Button
+            type="button"
+            size="lg"
+            disabled={!state.selectedPackageId || !selected}
+            onClick={() => navigate("/order/payment")}
+          >
             {t("order.continuePayment")}
           </Button>
         </div>

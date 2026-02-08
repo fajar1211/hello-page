@@ -149,6 +149,7 @@ export const dict: Dict = {
 
   // Generic buttons
   "common.back": { id: "Kembali", en: "Back" },
+  "order.viewDetail": { id: "Lihat Detail", en: "View details" },
 
   // Services
   "services.seoTitle": { id: "Layanan | EasyMarketingAssist", en: "Services | EasyMarketingAssist" },
