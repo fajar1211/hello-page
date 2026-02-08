@@ -113,7 +113,9 @@ export default function ChooseDomain() {
               <p className="text-sm text-muted-foreground">{t("order.searchToCheck")}</p>
             ) : (
               <> 
-                <p className="text-xs text-muted-foreground">Hasil untuk: <span className="font-medium text-foreground">{lastChecked}</span></p>
+                <p className="text-xs text-muted-foreground">
+                  Hasil untuk keyword: <span className="font-medium text-foreground">{keyword}</span>
+                </p>
                 <div className="overflow-hidden rounded-lg border">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
