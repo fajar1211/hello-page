@@ -102,11 +102,6 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
     return durationOnly + addOnsTotal;
   })();
 
-  const packagePlusAddOns = useMemo(() => {
-    const pkg = pricing.packagePriceUsd ?? null;
-    if (pkg == null) return null;
-    return Number(pkg) + Number(addOnsTotal ?? 0);
-  }, [addOnsTotal, pricing.packagePriceUsd]);
 
   const promoDiscountUsd = (() => {
     const d = state.appliedPromo?.discountUsd ?? 0;
