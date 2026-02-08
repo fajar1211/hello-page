@@ -102,7 +102,7 @@ export default function ChooseDomain() {
                       ) : availableItems.length === 0 ? (
                         <tr className="border-t">
                           <td className="px-3 py-3 text-muted-foreground" colSpan={4}>
-                            Tidak ada domain available untuk keyword ini.
+                            Tidak ada domain available untuk keyword ini dari 10 TLD favorit yang dicek.
                           </td>
                         </tr>
                       ) : (
@@ -148,7 +148,13 @@ export default function ChooseDomain() {
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
                 <div className="flex items-start justify-between gap-4">
-                  <p className="text-xs text-muted-foreground">Powered by Domainr API. (Hanya domain yang available ditampilkan)</p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Dicek: 10 TLD favorit (.com, .id, .my.id, .biz.id, .co.id, .web.id, .net, .org, .online, .store). Hanya domain yang
+                      available ditampilkan.
+                    </p>
+                    <p className="text-xs text-muted-foreground">Hasil available: {availableItems.length}.</p>
+                  </div>
 
                   {pricing.domainPriceUsd == null || !selectedDomain ? null : (
                     <div className="text-right">
