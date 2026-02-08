@@ -84,6 +84,12 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
     return (domainUsd + pkgUsd) * state.subscriptionYears + addOnsTotal;
   })();
 
+  const packagePlusAddOns = useMemo(() => {
+    const pkg = pricing.packagePriceUsd ?? null;
+    if (pkg == null) return null;
+    return Number(pkg) + Number(addOnsTotal ?? 0);
+  }, [addOnsTotal, pricing.packagePriceUsd]);
+
   const promoDiscountUsd = (() => {
     const d = state.appliedPromo?.discountUsd ?? 0;
     if (!Number.isFinite(d) || d <= 0) return 0;
@@ -114,6 +120,11 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
           </div>
 
           <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Paket</span>
+            <span className="text-sm font-medium text-foreground">{pricing.packagePriceUsd == null ? "—" : formatIdr(pricing.packagePriceUsd)}</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">{t("order.plan")}</span>
             <span className="text-sm font-medium text-foreground">{yearsLabel}</span>
           </div>
@@ -127,10 +138,11 @@ export function OrderSummaryCard({ showEstPrice = true }: { showEstPrice?: boole
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted-foreground">{t("order.price")}</span>
-                <span className="text-sm font-medium text-foreground">{estTotalLabel}</span>
+              <div className="rounded-xl bg-muted/30 p-3">
+                <h1 className="text-base font-bold text-foreground">Total Harga</h1>
+                <p className="mt-1 text-2xl font-bold text-foreground">{packagePlusAddOns == null ? "—" : formatIdr(packagePlusAddOns)}</p>
               </div>
+
               {state.appliedPromo ? (
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-muted-foreground">{t("order.promo")}</span>
