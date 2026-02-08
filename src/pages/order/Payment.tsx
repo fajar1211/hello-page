@@ -178,9 +178,12 @@ export default function Payment() {
     }
 
     // Fallback to legacy website_settings.order_subscription_plans price override.
-    const selectedPlan = subscriptionPlans.find((p) => p.years === state.subscriptionYears);
-    const planOverrideUsd =
-      typeof selectedPlan?.price_usd === "number" && Number.isFinite(selectedPlan.price_usd) ? selectedPlan.price_usd : null;
+    // (years can be string/number depending on source, so coerce to number)
+    const selectedPlan = (subscriptionPlans || []).find((p: any) => Number(p?.years) === Number(state.subscriptionYears));
+    const planOverrideUsd = (() => {
+      const v = Number((selectedPlan as any)?.price_usd);
+      return Number.isFinite(v) ? v : null;
+    })();
     if (planOverrideUsd != null) return planOverrideUsd + addOnsTotal;
 
     const domainUsd = pricing.domainPriceUsd ?? null;
