@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMidtransOrderSettings } from "@/hooks/useMidtransOrderSettings";
 import { usePaypalOrderSettings } from "@/hooks/usePaypalOrderSettings";
 import { PayPalButtonsSection } from "@/components/order/PayPalButtonsSection";
+import { usePackageDurations } from "@/hooks/usePackageDurations";
+import { computeDiscountedTotal } from "@/lib/packageDurations";
 
 declare global {
   interface Window {
@@ -41,6 +43,7 @@ export default function Payment() {
   const { toast } = useToast();
   const { state, setPromoCode, setAppliedPromo } = useOrder();
   const { pricing, subscriptionPlans } = useOrderPublicSettings(state.domain, state.selectedPackageId);
+  const { rows: durationRows } = usePackageDurations(state.selectedPackageId);
   const { total: addOnsTotal } = useOrderAddOns({ packageId: state.selectedPackageId, quantities: state.addOns ?? {} });
   const midtrans = useMidtransOrderSettings();
   const paypal = usePaypalOrderSettings();
@@ -140,17 +143,46 @@ export default function Payment() {
   // PayPal should be usable whenever it's configured (Ready), even if provider auto-detection fails.
   const paypalButtonsEnabled = Boolean(paypal.ready && paypal.clientId);
 
+  const discountByMonths = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const r of durationRows || []) {
+      if (r?.is_active === false) continue;
+      const months = Number((r as any).duration_months ?? 0);
+      const discount = Number((r as any).discount_percent ?? 0);
+      if (Number.isFinite(months) && months > 0) m.set(months, discount);
+    }
+    return m;
+  }, [durationRows]);
+
   const baseTotalUsd = useMemo(() => {
     if (!state.subscriptionYears) return null;
+
+    const months = Number(state.subscriptionYears) * 12;
+    const discountPercent = discountByMonths.get(months) ?? 0;
+
+    // Prefer Duration & Discount config (package_durations) so it matches /order/subscription.
+    if (discountByMonths.size > 0) {
+      const domain = pricing.domainPriceUsd ?? null;
+      const pkg = pricing.packagePriceUsd ?? null;
+      if (domain == null || pkg == null) return null;
+
+      const baseAnnual = domain + pkg;
+      const monthly = baseAnnual / 12;
+      return computeDiscountedTotal({ monthlyPrice: monthly, months, discountPercent }) + addOnsTotal;
+    }
+
+    // Fallback to legacy website_settings.order_subscription_plans price override.
     const selectedPlan = subscriptionPlans.find((p) => p.years === state.subscriptionYears);
     const planOverrideUsd =
       typeof selectedPlan?.price_usd === "number" && Number.isFinite(selectedPlan.price_usd) ? selectedPlan.price_usd : null;
     if (planOverrideUsd != null) return planOverrideUsd + addOnsTotal;
+
     const domainUsd = pricing.domainPriceUsd ?? null;
     const pkgUsd = pricing.packagePriceUsd ?? null;
     if (domainUsd == null || pkgUsd == null) return null;
+
     return (domainUsd + pkgUsd) * state.subscriptionYears + addOnsTotal;
-  }, [addOnsTotal, pricing.domainPriceUsd, pricing.packagePriceUsd, state.subscriptionYears, subscriptionPlans]);
+  }, [addOnsTotal, discountByMonths, pricing.domainPriceUsd, pricing.packagePriceUsd, state.subscriptionYears, subscriptionPlans]);
 
   const totalAfterPromoUsd = useMemo(() => {
     if (baseTotalUsd == null) return null;
