@@ -54,16 +54,31 @@ export default function ChooseDomain() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [params] = useSearchParams();
-  const initial = params.get("domain") ?? "";
+  const paramDomain = params.get("domain") ?? "";
+  const initial = paramDomain;
   const { state, setDomain, setDomainStatus } = useOrder();
 
-  const [lastChecked, setLastChecked] = useState<string>(state.domain || initial);
+  // IMPORTANT:
+  // If user comes from homepage search, the query param should be the source of truth.
+  // Don't let an older OrderContext domain override it.
+  const initialDomain = paramDomain || state.domain || "";
+
+  const [lastChecked, setLastChecked] = useState<string>(initialDomain);
   const keyword = useMemo(() => normalizeKeyword(lastChecked), [lastChecked]);
 
   const { loading, error, items } = useDomainSuggestions(keyword, { enabled: Boolean(keyword) });
   const visibleItems = useMemo(() => items.filter((it) => it.domain).slice(0, 10), [items]);
 
   const [selectedDomain, setSelectedDomain] = useState<string>(state.domain || "");
+
+  // Sync when query param changes (e.g., new search from homepage)
+  useEffect(() => {
+    if (!paramDomain) return;
+    setLastChecked(paramDomain);
+    setSelectedDomain("");
+    setDomainStatus(null);
+    setDomain(paramDomain);
+  }, [paramDomain, setDomain, setDomainStatus]);
 
   // Reset selection when user searches new keyword
   useEffect(() => {
