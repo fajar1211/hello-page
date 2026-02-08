@@ -294,24 +294,40 @@ export default function SuperAdminSubscriptions() {
   const saveAddOns = async () => {
     setAddOnsSaving(true);
     try {
-      const payload = addOns.map((a, idx) => ({
-        id: a.id,
-        label: String(a.label ?? "").trim(),
-        description: String(a.description ?? "").trim() || null,
-        price_idr: Math.max(0, Math.floor(safeNumber(a.price_idr))),
-        is_active: a.is_active !== false,
-        sort_order: idx,
-      }));
+      const normalized = addOns.map((a, idx) => {
+        const base = {
+          label: String(a.label ?? "").trim(),
+          description: String(a.description ?? "").trim() || null,
+          price_idr: Math.max(0, Math.floor(safeNumber(a.price_idr))),
+          is_active: a.is_active !== false,
+          sort_order: idx,
+        };
+
+        // Important: for new rows, DO NOT send `id: null/undefined`.
+        return a.id ? { id: a.id, ...base } : base;
+      });
 
       // Basic validation
-      const invalid = payload.find((p) => !p.label);
+      const invalid = normalized.find((p) => !p.label);
       if (invalid) {
         toast({ variant: "destructive", title: "Save failed", description: "Label wajib diisi untuk semua add-on." });
         return;
       }
 
-      const { error } = await (supabase as any).from("subscription_add_ons").upsert(payload, { onConflict: "id" });
-      if (error) throw error;
+      const toUpsert = normalized.filter((r: any) => Boolean(r.id));
+      const toInsert = normalized.filter((r: any) => !r.id);
+
+      if (toInsert.length) {
+        const { error } = await (supabase as any).from("subscription_add_ons").insert(toInsert);
+        if (error) throw error;
+      }
+
+      if (toUpsert.length) {
+        const { error } = await (supabase as any)
+          .from("subscription_add_ons")
+          .upsert(toUpsert, { onConflict: "id" });
+        if (error) throw error;
+      }
 
       toast({ title: "Saved", description: "Subscription add-ons updated." });
       setIsEditingAddOns(false);
