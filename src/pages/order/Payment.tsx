@@ -19,8 +19,6 @@ import { PayPalButtonsSection } from "@/components/order/PayPalButtonsSection";
 import { usePackageDurations } from "@/hooks/usePackageDurations";
 import { computeDiscountedTotal } from "@/lib/packageDurations";
 
-const USD_TO_IDR_RATE = 16000;
-
 function formatIdr(value: number) {
   return `Rp ${Math.round(value).toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
 }
@@ -199,11 +197,13 @@ export default function Payment() {
     return Math.max(0, baseTotalUsd - discount);
   }, [baseTotalUsd, state.appliedPromo?.discountUsd]);
 
+  // Display currency is IDR across the order flow.
+  // Some pricing sources are already stored in IDR (despite legacy *_usd naming),
+  // so avoid applying a second conversion here.
   const totalAfterPromoIdr = useMemo(() => {
     if (totalAfterPromoUsd == null) return null;
-    return Math.max(0, Math.round(totalAfterPromoUsd * USD_TO_IDR_RATE));
+    return Math.max(0, Math.round(totalAfterPromoUsd));
   }, [totalAfterPromoUsd]);
-
 
   // Auto-apply promo as user types (debounced), so Est. price updates immediately.
   useEffect(() => {
@@ -435,7 +435,7 @@ export default function Payment() {
           <CardContent className="space-y-4">
             {gateway === "xendit" ? (
               <div className="flex gap-2">
-                <Button type="button" variant="default" disabled>
+                <Button type="button" variant="default" aria-disabled="true">
                   Xendit
                 </Button>
               </div>
