@@ -18,9 +18,12 @@ type Payload =
 
 function normalizeTld(input: unknown): string {
   const raw = String(input ?? "").trim().toLowerCase();
-  const cleaned = raw.replace(/^\.+/, "");
+  const cleaned = raw
+    .replace(/^\.+/, "")
+    // allow admin to type multi-part TLD like "co.id" and store it in DB-friendly form "co-id"
+    .replace(/\./g, "-");
   if (!cleaned) return "";
-  // DB constraint: domain_tld_prices.tld must be like ".com"
+  // DB constraint: domain_tld_prices.tld must be like ".com" or ".co-id"
   return `.${cleaned}`;
 }
 
