@@ -31,6 +31,11 @@ export function OrderSubscriptionAddOns() {
           <div className="grid gap-3">
             {items.map((a) => {
               const checked = Boolean(state.subscriptionAddOns?.[a.id]);
+              const descLines = String(a.description ?? "")
+                .split(/\r?\n/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+
               return (
                 <label key={a.id} className="flex items-start gap-3 rounded-xl border bg-card p-4 cursor-pointer">
                   <Checkbox
@@ -43,7 +48,15 @@ export function OrderSubscriptionAddOns() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground break-words">{a.label}</p>
-                        {a.description ? <p className="mt-1 text-xs text-muted-foreground">{a.description}</p> : null}
+                        {descLines.length ? (
+                          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+                            {descLines.map((line, i) => (
+                              <li key={i} className="break-words">
+                                {line}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
                       </div>
                       <Badge variant="secondary">{formatIdr(Number(a.price_idr ?? 0))}</Badge>
                     </div>

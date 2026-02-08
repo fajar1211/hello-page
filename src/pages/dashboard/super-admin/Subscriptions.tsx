@@ -397,10 +397,14 @@ export default function SuperAdminSubscriptions() {
 
                 {!plansLoading && plans.length ? (
                   plans.map((p, idx) => (
-                    <div key={`${p.years}-${idx}`} className="grid gap-2 rounded-md border bg-muted/20 p-3 md:grid-cols-6">
-                      <div>
+                    <div
+                      key={`${p.years}-${idx}`}
+                      className="grid min-w-0 gap-2 rounded-md border bg-muted/20 p-3 md:grid-cols-12"
+                    >
+                      <div className="min-w-0 md:col-span-2">
                         <Label className="text-xs">Years</Label>
                         <Input
+                          className="w-full"
                           value={String(p.years)}
                           onChange={(e) =>
                             setPlans((prev) => prev.map((x, i) => (i === idx ? { ...x, years: asNumber(e.target.value) } : x)))
@@ -410,18 +414,20 @@ export default function SuperAdminSubscriptions() {
                         />
                       </div>
 
-                      <div className="md:col-span-2">
+                      <div className="min-w-0 md:col-span-4">
                         <Label className="text-xs">Label</Label>
                         <Input
+                          className="w-full"
                           value={p.label}
                           onChange={(e) => setPlans((prev) => prev.map((x, i) => (i === idx ? { ...x, label: e.target.value } : x)))}
                           disabled={plansSaving || !isEditingPlans}
                         />
                       </div>
 
-                      <div>
+                      <div className="min-w-0 md:col-span-3">
                         <Label className="text-xs">Price (IDR)</Label>
                         <Input
+                          className="w-full"
                           value={String(p.price_usd ?? 0)}
                           onChange={(e) =>
                             setPlans((prev) => prev.map((x, i) => (i === idx ? { ...x, price_usd: asNumber(e.target.value, 0) } : x)))
@@ -431,9 +437,10 @@ export default function SuperAdminSubscriptions() {
                         />
                       </div>
 
-                      <div>
+                      <div className="min-w-0 md:col-span-2">
                         <Label className="text-xs">Sort</Label>
                         <Input
+                          className="w-full"
                           value={String(p.sort_order)}
                           onChange={(e) =>
                             setPlans((prev) => prev.map((x, i) => (i === idx ? { ...x, sort_order: asNumber(e.target.value) } : x)))
@@ -443,8 +450,8 @@ export default function SuperAdminSubscriptions() {
                         />
                       </div>
 
-                      <div className="flex items-end justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 md:col-span-12">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "On" : "Off"}</Badge>
                           <Button
                             type="button"
