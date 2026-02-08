@@ -94,12 +94,14 @@ export const dict: Dict = {
 
   // Details
   "order.contactInfo": { id: "Informasi kontak", en: "Contact information" },
-  "order.name": { id: "Nama", en: "Name" },
+  "order.name": { id: "Nama Lengkap", en: "Full name" },
   "order.email": { id: "Email", en: "Email" },
   "order.phoneWhatsApp": { id: "Nomor Telp/WhatsApp", en: "Phone/WhatsApp number" },
-  "order.country": { id: "Negara", en: "Country" },
-  "order.selectCountry": { id: "Pilih negara", en: "Select country" },
-  "order.companyOptional": { id: "Perusahaan (opsional)", en: "Company (optional)" },
+  "order.businessNameOptional": { id: "Nama Bisnis (opsional)", en: "Business name (optional)" },
+  "order.province": { id: "Provinsi", en: "Province" },
+  "order.selectProvince": { id: "Pilih provinsi", en: "Select province" },
+  "order.city": { id: "Kota/Kab", en: "City/Regency" },
+  "order.selectCity": { id: "Pilih kota/kab", en: "Select city/regency" },
   "order.termsAgree": { id: "Saya setuju dengan syarat", en: "I agree to the terms" },
   "order.updateLater": { id: "Kamu bisa mengubah detail nanti di dashboard.", en: "You can update details later in dashboard." },
   "order.continueSubscription": { id: "Lanjut ke Paket", en: "Continue to Subscription" },

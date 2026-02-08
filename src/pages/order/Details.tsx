@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { State, City } from "country-state-city";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -10,22 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { OrderLayout } from "@/components/order/OrderLayout";
 import { OrderSummaryCard } from "@/components/order/OrderSummaryCard";
-import { countries } from "@/data/countries";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useOrder } from "@/contexts/OrderContext";
 import { useI18n } from "@/hooks/useI18n";
 
 const schema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100),
-  email: z.string().trim().email("Invalid email").max(255),
-  phone: z
-    .string()
-    .trim()
-    .min(6, "Nomor Telp/WhatsApp wajib diisi")
-    .max(30, "Nomor Telp/WhatsApp terlalu panjang"),
-  country: z.string().trim().min(1, "Country is required").max(100),
-  company: z.string().trim().max(120).optional().or(z.literal("")),
-  acceptedTerms: z.boolean().refine((v) => v === true, { message: "You must accept the terms" }),
+  name: z.string().trim().min(1, "Nama lengkap wajib diisi").max(100),
+  email: z.string().trim().email("Email tidak valid").max(255),
+  phone: z.string().trim().min(6, "Nomor Telp/WhatsApp wajib diisi").max(30, "Nomor Telp/WhatsApp terlalu panjang"),
+  businessName: z.string().trim().max(120).optional().or(z.literal("")),
+  provinceCode: z.string().trim().min(1, "Provinsi wajib dipilih").max(10),
+  city: z.string().trim().min(1, "Kota/Kab wajib dipilih").max(120),
+  acceptedTerms: z.boolean().refine((v) => v === true, { message: "Kamu harus setuju dengan syarat" }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -35,13 +32,19 @@ export default function Details() {
   const { t } = useI18n();
   const { state, setDetails } = useOrder();
 
+  const provinces = useMemo(() => {
+    const list = State.getStatesOfCountry("ID") || [];
+    return [...list].sort((a, b) => String(a.name).localeCompare(String(b.name), "id"));
+  }, []);
+
   const defaultValues = useMemo<FormValues>(
     () => ({
       name: state.details.name,
       email: state.details.email,
       phone: state.details.phone,
-      country: state.details.country,
-      company: state.details.company ?? "",
+      businessName: state.details.businessName ?? "",
+      provinceCode: state.details.provinceCode ?? "",
+      city: state.details.city ?? "",
       acceptedTerms: state.details.acceptedTerms,
     }),
     [state.details],
@@ -65,7 +68,8 @@ export default function Details() {
             <form
               className="space-y-5"
               onSubmit={form.handleSubmit((values) => {
-                setDetails(values);
+                const provinceName = provinces.find((p) => p.isoCode === values.provinceCode)?.name ?? "";
+                setDetails({ ...values, provinceName });
                 navigate("/order/subscription");
               })}
             >
@@ -116,20 +120,43 @@ export default function Details() {
 
                 <FormField
                   control={form.control}
-                  name="country"
+                  name="businessName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("order.country")}</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <FormLabel>{t("order.businessNameOptional")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} autoComplete="organization" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="provinceCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("order.province")}</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          // reset city when province changes
+                          form.setValue("city", "", { shouldValidate: true, shouldDirty: true });
+                        }}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t("order.selectCountry")} />
+                            <SelectValue placeholder={t("order.selectProvince")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {countries.map((c) => (
-                            <SelectItem key={c.code} value={c.name}>
-                              {c.name}
+                          {provinces.map((p) => (
+                            <SelectItem key={p.isoCode} value={p.isoCode}>
+                              {p.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -138,21 +165,38 @@ export default function Details() {
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("order.companyOptional")}</FormLabel>
-                    <FormControl>
-                      <Input {...field} autoComplete="organization" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => {
+                    const provinceCode = form.watch("provinceCode");
+                    const cities = provinceCode ? City.getCitiesOfState("ID", provinceCode) || [] : [];
+                    const cityItems = [...cities].sort((a, b) => String(a.name).localeCompare(String(b.name), "id"));
+
+                    return (
+                      <FormItem>
+                        <FormLabel>{t("order.city")}</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange} disabled={!provinceCode}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("order.selectCity")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {cityItems.map((c) => (
+                              <SelectItem key={`${c.stateCode}-${c.name}`} value={c.name}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
 
               <FormField
                 control={form.control}

@@ -6,8 +6,10 @@ export type OrderDetails = {
   name: string;
   email: string;
   phone: string;
-  country: string;
-  company?: string;
+  businessName?: string;
+  provinceCode: string;
+  provinceName: string;
+  city: string;
   acceptedTerms: boolean;
 };
 
@@ -60,8 +62,10 @@ const defaultState: OrderState = {
     name: "",
     email: "",
     phone: "",
-    country: "",
-    company: "",
+    businessName: "",
+    provinceCode: "",
+    provinceName: "",
+    city: "",
     acceptedTerms: false,
   },
   promoCode: "",
