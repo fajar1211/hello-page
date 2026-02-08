@@ -97,8 +97,9 @@ const SelectContent = React.forwardRef<
         <SelectPrimitive.Viewport
           className={cn(
             "p-1",
-            position === "popper" &&
-              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            // Keep width aligned to trigger, but do NOT force the viewport height.
+            // For long lists (e.g. Kota/Kab), forcing height to trigger height makes the dropdown look "not visible".
+            position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]",
           )}
         >
           {children}
