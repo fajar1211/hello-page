@@ -431,22 +431,30 @@ export default function Payment() {
             <CardTitle className="text-base">Payment method</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Button type="button" variant={method === "card" ? "default" : "outline"} onClick={() => setMethod("card")}>
-                Card
-              </Button>
-              <Button
-                type="button"
-                variant={method === "paypal" ? "default" : "outline"}
-                onClick={() => setMethod("paypal")}
-                disabled={!paypalButtonsEnabled}
-              >
-                PayPal
-              </Button>
-              <Button type="button" variant={method === "bank" ? "default" : "outline"} onClick={() => setMethod("bank")}>
-                Bank transfer
-              </Button>
-            </div>
+            {gateway === "xendit" ? (
+              <div className="flex gap-2">
+                <Button type="button" variant="default" disabled>
+                  Xendit
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Button type="button" variant={method === "card" ? "default" : "outline"} onClick={() => setMethod("card")}>
+                  Card
+                </Button>
+                <Button
+                  type="button"
+                  variant={method === "paypal" ? "default" : "outline"}
+                  onClick={() => setMethod("paypal")}
+                  disabled={!paypalButtonsEnabled}
+                >
+                  PayPal
+                </Button>
+                <Button type="button" variant={method === "bank" ? "default" : "outline"} onClick={() => setMethod("bank")}>
+                  Bank transfer
+                </Button>
+              </div>
+            )}
 
             {method === "paypal" ? (
               <div className="rounded-lg border p-4 space-y-3">
