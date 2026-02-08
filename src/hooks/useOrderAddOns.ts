@@ -12,6 +12,28 @@ export type OrderAddOnItem = {
   sort_order: number;
 };
 
+const BUILTIN_ADD_ONS: OrderAddOnItem[] = [
+  {
+    id: "__builtin_editing_website",
+    label: "Jasa Editing Website",
+    price_per_unit: 500_000,
+    unit: "paket",
+    unit_step: 1,
+    max_quantity: 1,
+    sort_order: -100,
+  },
+];
+
+function mergeBuiltins(dbItems: OrderAddOnItem[] | null | undefined): OrderAddOnItem[] {
+  const base = (dbItems ?? []) as OrderAddOnItem[];
+  const merged = [...base];
+  for (const b of BUILTIN_ADD_ONS) {
+    if (!merged.some((it) => it.id === b.id)) merged.push(b);
+  }
+  merged.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
+  return merged;
+}
+
 export function useOrderAddOns(params: {
   packageId: string | null;
   quantities: Record<string, number>;
@@ -40,9 +62,9 @@ export function useOrderAddOns(params: {
           .order("sort_order", { ascending: true });
 
         if (!isMounted) return;
-        setItems((data ?? []) as any);
+        setItems(mergeBuiltins((data ?? []) as any));
       } catch {
-        if (isMounted) setItems([]);
+        if (isMounted) setItems(mergeBuiltins([]));
       } finally {
         if (isMounted) setLoading(false);
       }
