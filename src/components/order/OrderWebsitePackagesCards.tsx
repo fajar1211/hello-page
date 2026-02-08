@@ -191,7 +191,7 @@ export function OrderWebsitePackagesCards() {
   }, []);
 
   return (
-    <section aria-label={t("nav.packages")} className="space-y-3">
+    <section id="order-packages" aria-label={t("nav.packages")} className="space-y-3">
       <header className="space-y-1">
         <h2 className="text-base font-semibold text-foreground">{t("nav.packages")}</h2>
         <p className="text-sm text-muted-foreground">Pilih paket dulu, lalu baru pilih durasi.</p>

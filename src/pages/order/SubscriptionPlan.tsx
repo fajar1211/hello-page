@@ -54,11 +54,30 @@ export default function SubscriptionPlan() {
       <div className="space-y-6">
         <OrderWebsitePackagesCards />
 
+        <div id="order-duration" />
+
         {state.selectedPackageId ? (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t("order.chooseDuration")}</CardTitle>
-            </CardHeader>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base">{t("order.chooseDuration")}</CardTitle>
+                    {state.selectedPackageName ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Paket terpilih: <span className="text-foreground font-medium">{state.selectedPackageName}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById("order-packages")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  >
+                    Ganti paket
+                  </Button>
+                </div>
+              </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{t("order.includesCosts")}</p>
 
