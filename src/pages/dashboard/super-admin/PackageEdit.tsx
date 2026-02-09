@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import PackageAddOnsEditor, { type PackageAddOnDraft } from "@/components/super-admin/PackageAddOnsEditor";
@@ -156,145 +157,31 @@ export default function SuperAdminPackageEdit() {
 
     setSaving(true);
     try {
-      const payload = {
-        name: pkg.name.trim(),
-        description: pkg.description?.trim() || null,
-        price: pkg.price,
-        features: pkg.features,
-        is_active: pkg.is_active,
-      };
+      const { data, error } = await invokeWithAuth<{ ok: boolean; error?: string }>("super-admin-save-marketing-package", {
+        package: {
+          id: pkg.id,
+          name: pkg.name.trim(),
+          description: pkg.description?.trim() || null,
+          price: pkg.price,
+          features: pkg.features,
+          is_active: pkg.is_active,
+        },
+        add_ons: addOns,
+        removed_add_on_ids: removedAddOnIds,
+        durations,
+        removed_duration_ids: removedDurationIds,
+      });
 
-      const { error } = await (supabase as any).from("packages").update(payload).eq("id", pkg.id);
       if (error) throw error;
-
-      // Save add-ons + delete removed ones
-      // IMPORTANT:
-      // We cannot rely on upsert(payload-with-id, onConflict=package_id,add_on_key) when the user edits `add_on_key`.
-      // If `add_on_key` changes, PostgREST may try to INSERT with an existing `id` and trigger:
-      //   duplicate key value violates unique constraint "package_add_ons_pkey"
-      // So we:
-      // - UPDATE rows that already have an id (by id)
-      // - UPSERT/INSERT rows that are new (no id) (by unique key package_id+add_on_key)
-      const validAddOns = addOns.filter((a) => a.add_on_key.trim() && a.label.trim());
-
-      const existingAddOns = validAddOns.filter((a) => Boolean(a.id));
-      const newAddOns = validAddOns.filter((a) => !a.id);
-
-      if (existingAddOns.length > 0) {
-        const updateResults = await Promise.all(
-          existingAddOns.map((a) => {
-            const updatePayload = {
-              package_id: pkg.id,
-              add_on_key: a.add_on_key.trim(),
-              label: a.label.trim(),
-              price_per_unit: Number(a.price_per_unit ?? 0),
-              unit_step: Number(a.unit_step ?? 1),
-              unit: String(a.unit ?? "unit").trim() || "unit",
-              is_active: Boolean(a.is_active ?? true),
-              sort_order: Number(a.sort_order ?? 0),
-              max_quantity:
-                a.max_quantity === null || a.max_quantity === undefined || Number.isNaN(Number(a.max_quantity))
-                  ? null
-                  : Math.max(0, Number(a.max_quantity)),
-            };
-
-            return (supabase as any).from("package_add_ons").update(updatePayload).eq("id", a.id);
-          })
-        );
-
-        const firstErr = updateResults.find((r) => r?.error)?.error;
-        if (firstErr) throw firstErr;
-      }
-
-      if (newAddOns.length > 0) {
-        const insertPayload = newAddOns.map((a) => ({
-          package_id: pkg.id,
-          add_on_key: a.add_on_key.trim(),
-          label: a.label.trim(),
-          price_per_unit: Number(a.price_per_unit ?? 0),
-          unit_step: Number(a.unit_step ?? 1),
-          unit: String(a.unit ?? "unit").trim() || "unit",
-          is_active: Boolean(a.is_active ?? true),
-          sort_order: Number(a.sort_order ?? 0),
-          max_quantity:
-            a.max_quantity === null || a.max_quantity === undefined || Number.isNaN(Number(a.max_quantity))
-              ? null
-              : Math.max(0, Number(a.max_quantity)),
-        }));
-
-        const { error: upsertErr } = await (supabase as any)
-          .from("package_add_ons")
-          // Ensure missing columns use DB defaults (e.g. id = gen_random_uuid())
-          .upsert(insertPayload, { onConflict: "package_id,add_on_key", defaultToNull: false });
-
-        if (upsertErr) throw upsertErr;
-      }
-
-      if (removedAddOnIds.length > 0) {
-        const { error: delErr } = await (supabase as any)
-          .from("package_add_ons")
-          .delete()
-          .in("id", removedAddOnIds);
-        if (delErr) throw delErr;
-      }
-
-      // Save durations + delete removed ones
-      const validDurations = durations
-        .map((d) => ({
-          ...d,
-          duration_months: Number(d.duration_months),
-          discount_percent: Number(d.discount_percent ?? 0),
-          sort_order: Number(d.sort_order ?? 0),
-        }))
-        .filter((d) => Number.isFinite(d.duration_months) && d.duration_months > 0);
-
-      const existingDurations = validDurations.filter((d) => Boolean(d.id));
-      const newDurations = validDurations.filter((d) => !d.id);
-
-      if (existingDurations.length > 0) {
-        const updateResults = await Promise.all(
-          existingDurations.map((d) => {
-            const updatePayload = {
-              package_id: pkg.id,
-              duration_months: Number(d.duration_months),
-              discount_percent: Number(d.discount_percent ?? 0),
-              is_active: Boolean(d.is_active ?? true),
-              sort_order: Number(d.sort_order ?? 0),
-            };
-            return (supabase as any).from("package_durations").update(updatePayload).eq("id", d.id);
-          })
-        );
-
-        const firstErr = updateResults.find((r) => r?.error)?.error;
-        if (firstErr) throw firstErr;
-      }
-
-      if (newDurations.length > 0) {
-        const insertPayload = newDurations.map((d) => ({
-          package_id: pkg.id,
-          duration_months: Number(d.duration_months),
-          discount_percent: Number(d.discount_percent ?? 0),
-          is_active: Boolean(d.is_active ?? true),
-          sort_order: Number(d.sort_order ?? 0),
-        }));
-
-        const { error: upsertErr } = await (supabase as any)
-          .from("package_durations")
-          .upsert(insertPayload, { onConflict: "package_id,duration_months", defaultToNull: false });
-
-        if (upsertErr) throw upsertErr;
-      }
-
-      if (removedDurationIds.length > 0) {
-        const { error: delErr } = await (supabase as any).from("package_durations").delete().in("id", removedDurationIds);
-        if (delErr) throw delErr;
-      }
+      if ((data as any)?.error) throw new Error(String((data as any).error));
 
       toast.success("Package berhasil disimpan");
       navigate("/dashboard/super-admin/marketing-packages");
     } catch (err: any) {
       console.error("Error saving package:", err);
-      toast.error(err?.message || "Gagal menyimpan package");
+      const msg = err?.message || "Gagal menyimpan package";
+      // Surface a clearer message if the user isn't actually a super admin
+      toast.error(msg === "Forbidden" ? "Akses ditolak. Silakan login sebagai Super Admin." : msg);
     } finally {
       setSaving(false);
     }
