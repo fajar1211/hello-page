@@ -40,6 +40,9 @@ function validateXenditSecretKey(input: string) {
     };
   }
 
+  return { ok: true as const, apiKey };
+}
+
 const WS_ENABLED = "xendit_enabled";
 
 function jsonBool(v: unknown, fallback: boolean) {
@@ -51,6 +54,8 @@ function jsonBool(v: unknown, fallback: boolean) {
   }
   return fallback;
 }
+
+
 
 async function writeAuditLog(admin: any, params: { actorUserId: string; action: string; provider: string; metadata?: Record<string, unknown> }) {
   await admin.from("super_admin_audit_logs").insert({
