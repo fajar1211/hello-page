@@ -9,6 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -355,9 +362,49 @@ export default function SuperAdminSubscriptions() {
   const plansCountLabel = useMemo(() => String(plans.length), [plans.length]);
   const addOnsCountLabel = useMemo(() => String(addOns.length), [addOns.length]);
 
+  const selectedPackageName = useMemo(() => {
+    const found = packages.find((p) => p.id === pricingPackageId);
+    return found?.name || "(No package selected)";
+  }, [packages, pricingPackageId]);
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold text-foreground">Duration Packages</h1>
+
+      {/* Menu: mengikuti daftar & nama di All Packages */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            <span>Package Menu:</span>
+            <span className="font-semibold">{selectedPackageName}</span>
+          </CardTitle>
+          <CardDescription>
+            Pilih package (mengikuti nama di halaman All Packages). Domain Pricing akan tersimpan ke package yang dipilih.
+            Website Plans & Add-ons tetap global.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2 md:max-w-md">
+          <Label className="text-xs">Select Package</Label>
+          <Select value={pricingPackageId || ""} onValueChange={setPricingPackageId} disabled={pricingLoading || pricingSaving}>
+            <SelectTrigger>
+              <SelectValue placeholder={pricingLoading ? "Loading..." : "Select package"} />
+            </SelectTrigger>
+            <SelectContent>
+              {packages.length ? (
+                packages.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="__none" disabled>
+                  No packages
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {/* Domain Pricing (TLD) - top */}
       <Card>
